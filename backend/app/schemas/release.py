@@ -1,24 +1,25 @@
 from datetime import date
+from pydantic import BaseModel
 
-from pydantic import BaseModel, Field
 
-
-class ReleaseBase(BaseModel):
-    title: str = Field(..., min_length=1, max_length=200)
-    artist: str = Field(..., min_length=1, max_length=200)
+class ReleaseCreate(BaseModel):
+    title: str
+    artist: str
     release_date: date
 
 
-class ReleaseCreate(ReleaseBase):
-    pass
+class ReleaseUpdate(BaseModel):
+    title: str | None = None
+    artist: str | None = None
+    release_date: date | None = None
 
 
-class ReleaseUpdate(ReleaseBase):
-    pass
-
-
-class ReleaseResponse(ReleaseBase):
+class ReleaseResponse(BaseModel):
     id: int
+    title: str
+    artist: str
+    release_date: date
 
-    class Config:
-        from_attributes = True
+    model_config = {
+        "from_attributes": True
+    }
