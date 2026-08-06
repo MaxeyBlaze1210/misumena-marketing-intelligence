@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>{{ release.title }} — MMI Workspace</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/workspace.css"
+    >
+</head>
+
+<body>
+    <main class="workspace">
+        <a class="back-link" href="/workspace/releases">
+            ← All releases
+        </a>
+
+        <header class="release-workspace-header">
+            {% if release.artwork_url %}
+                <img
+                    class="workspace-cover"
+                    src="{{ release.artwork_url }}"
+                    alt="{{ release.title }} artwork"
+                >
+            {% endif %}
+
+            <div>
+                <p class="eyebrow">Release workspace</p>
+                <h1>{{ release.title }}</h1>
+                <p class="release-artist">{{ release.artist }}</p>
+            </div>
+        </header>
+
+<!-- Workspace Navigation -->
+<nav class="workspace-tabs">
+
+    <a
+        href="/workspace/releases/{{ release.id }}/release"
+        class="{% if active_tab == 'release' %}active{% endif %}"
+    >
+        Release
+    </a>
+
+    <a
+        href="/workspace/releases/{{ release.id }}/assets"
+        class="{% if active_tab == 'assets' %}active{% endif %}"
+    >
+        Assets
+    </a>
+
+    <span class="tab-separator" aria-hidden="true"></span>
+
+    <a
+        href="/workspace/releases/{{ release.id }}/promotion"
+        class="{% if active_tab == 'promotion' %}active{% endif %}"
+    >
+        Promotion
+    </a>
+
+    <a
+        href="/workspace/releases/{{ release.id }}/analytics"
+        class="{% if active_tab == 'analytics' %}active{% endif %}"
+    >
+        Analytics
+    </a>
+
+    <a
+        href="/workspace/releases/{{ release.id }}/intelligence"
+        class="{% if active_tab == 'intelligence' %}active{% endif %}"
+    >
+        Intelligence
+    </a>
+
+</nav>
+
+        <section class="tab-content">
+            {% block content %}{% endblock %}
+        </section>
+    </main>
+</body>
+</html>

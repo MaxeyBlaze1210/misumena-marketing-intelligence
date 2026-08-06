@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>{{ release.title }}</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/landing.css"
+    >
+
+</head>
+
+<body>
+
+<div class="container">
+
+    {% if release.artwork_url %}
+        <img
+            class="cover"
+            src="{{ release.artwork_url }}"
+        >
+    {% endif %}
+
+    <h1>{{ release.title }}</h1>
+
+    <h2>{{ release.artist }}</h2>
+
+    {% if release.landing_description %}
+        <p class="description">
+            {{ release.landing_description }}
+        </p>
+    {% endif %}
+
+    <div class="buttons">
+
+        {% if release.spotify_url %}
+        <a
+            class="button spotify"
+            href="{{ release.spotify_url }}"
+            target="_blank"
+        >
+            Spotify
+        </a>
+        {% endif %}
+
+        {% if release.apple_music_url %}
+        <a
+            class="button"
+            href="{{ release.apple_music_url }}"
+            target="_blank"
+        >
+            Apple Music
+        </a>
+        {% endif %}
+
+        {% if release.youtube_url %}
+        <a
+            class="button"
+            href="{{ release.youtube_url }}"
+            target="_blank"
+        >
+            YouTube
+        </a>
+        {% endif %}
+
+        {% if release.bandcamp_url %}
+        <a
+            class="button"
+            href="{{ release.bandcamp_url }}"
+            target="_blank"
+        >
+            Bandcamp
+        </a>
+        {% endif %}
+
+    </div>
+
+</div>
+
+</body>
+
+</html>

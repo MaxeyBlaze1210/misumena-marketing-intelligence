@@ -1,0 +1,29 @@
+{% extends "workspace/base.html" %}
+
+{% block content %}
+    <h2>Release</h2>
+
+    <div class="workspace-card">
+        <dl class="release-details">
+            <div>
+                <dt>Title</dt>
+                <dd>{{ release.title }}</dd>
+            </div>
+
+            <div>
+                <dt>Artist</dt>
+                <dd>{{ release.artist }}</dd>
+            </div>
+
+            <div>
+                <dt>Release date</dt>
+                <dd>{{ release.release_date }}</dd>
+            </div>
+
+            <div>
+                <dt>Landing-page slug</dt>
+                <dd>{{ release.landing_slug or "Missing" }}</dd>
+            </div>
+        </dl>
+    </div>
+{% endblock %}

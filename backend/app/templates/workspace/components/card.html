@@ -1,0 +1,14 @@
+<div class="workspace-card">
+
+    <h3>{{ title }}</h3>
+
+    {% if subtitle %}
+        <p class="card-subtitle">
+            {{ subtitle }}
+        </p>
+    {% endif %}
+
+    {% block body %}
+    {% endblock %}
+
+</div>

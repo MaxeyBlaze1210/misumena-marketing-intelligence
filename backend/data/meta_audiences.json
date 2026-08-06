@@ -1,0 +1,60 @@
+{
+  "Afrobeats": [
+    {
+      "name": "Afrobeat (Musik)",
+      "role": "trusted"
+    },
+    {
+      "name": "Afrikanische Popularmusik",
+      "role": "trusted"
+    },
+    {
+      "name": "Spotify (Streaming-Dienst)",
+      "role": "trusted"
+    },
+    {
+      "name": "Weltmusik",
+      "role": "trusted"
+    }
+  ],
+  "Afro Roots": [
+    {
+      "name": "Weltmusik",
+      "role": "trusted"
+    },
+    {
+      "name": "Traditionelle afrikanische Musik",
+      "role": "trusted"
+    },
+    {
+      "name": "Fairer Handel",
+      "role": "trusted"
+    },
+    {
+      "name": "Fair-Trade-Siegel",
+      "role": "trusted"
+    }
+  ],
+  "Electronic": [
+    {
+      "name": "House (Musik)",
+      "role": "trusted"
+    },
+    {
+      "name": "Deep House",
+      "role": "trusted"
+    },
+    {
+      "name": "Spotify (Streaming-Dienst)",
+      "role": "trusted"
+    },
+    {
+      "name": "Boiler Room",
+      "role": "trusted"
+    },
+    {
+      "name": "Elektronische Musik (Musik)",
+      "role": "trusted"
+    }
+  ]
+}

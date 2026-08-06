@@ -1,0 +1,166 @@
+{% extends "workspace/base.html" %}
+
+{% block content %}
+Promotion
+
+<div class="workspace-card-grid">
+
+    <article class="workspace-card">
+        <h3>Landing Page</h3>
+
+        {% if release.landing_slug %}
+            <p>Ready and available.</p>
+
+            <a
+                href="/r/{{ release.landing_slug }}"
+                target="_blank"
+            >
+                Open landing page
+            </a>
+        {% else %}
+            <p>Not configured yet.</p>
+        {% endif %}
+    </article>
+
+    <article class="workspace-card">
+
+        <h3>Meta Audience</h3>
+
+        <p>
+            Primary Meta Ads audience for this release.
+        </p>
+
+        <ul class="audience-family-list">
+
+            {% for audience in meta_audiences %}
+
+                <li>
+
+                    {% if release.meta_audience_id == audience.id %}
+
+                        <strong>✓ {{ audience.name }}</strong>
+
+                    {% else %}
+
+                        {{ audience.name }}
+
+                    {% endif %}
+
+                </li>
+
+            {% endfor %}
+
+        </ul>
+
+    </article>
+
+    <article class="workspace-card">
+        <h3>YouTube Discovery</h3>
+        <p>
+            Metadata, playlists, thumbnails and recommendation optimization will live here.
+        </p>
+    </article>
+
+    <article class="workspace-card">
+        <h3>Bandcamp</h3>
+        <p>
+            Release preparation will live here.
+        </p>
+    </article>
+
+    <article class="workspace-card">
+        <h3>Email Promotion</h3>
+        <p>
+            Radio, DJ and newsletter tools will live here.
+        </p>
+    </article>
+
+    <article class="workspace-card">
+    <h3>Meta Campaign Builder</h3>
+
+    {% if campaign_plan %}
+        <dl class="campaign-plan-details">
+            <div>
+                <dt>Meta audience</dt>
+                <dd>
+                    {% if campaign_plan.meta_audience %}
+                        {{ campaign_plan.meta_audience.name }}
+                    {% else %}
+                        Not selected
+                    {% endif %}
+                </dd>
+            </div>
+
+            <div>
+                <dt>Objective</dt>
+                <dd>Conversions</dd>
+            </div>
+
+            <div>
+                <dt>Optimization</dt>
+                <dd>{{ campaign_plan.optimization_goal }}</dd>
+            </div>
+
+            <div>
+                <dt>Conversion event</dt>
+                <dd>{{ campaign_plan.conversion_event }}</dd>
+            </div>
+
+            <div>
+                <dt>Countries</dt>
+                <dd>{{ campaign_plan.country_preset or "Not selected" }}</dd>
+            </div>
+
+            <div>
+                <dt>Daily budget</dt>
+                <dd>
+                    {% if campaign_plan.daily_budget %}
+                        €{{ campaign_plan.daily_budget }}
+                    {% else %}
+                        Not selected
+                    {% endif %}
+                </dd>
+            </div>
+
+            <div>
+                <dt>Status</dt>
+                <dd>{{ campaign_plan.status | title }}</dd>
+            </div>
+        </dl>
+    {% else %}
+        <p>No campaign plan created yet.</p>
+    {% endif %}
+</article>
+
+<article class="workspace-card">
+    <h3>Trusted Interests</h3>
+
+    {% if trusted_interests %}
+        <p>
+            {{ trusted_interests | length }}
+            trusted interests
+        </p>
+
+        <ul class="interest-list">
+            {% for link in trusted_interests %}
+                <li>
+                    ✓ {{ link.meta_interest.name }}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No trusted interests configured yet.</p>
+    {% endif %}
+</article>
+
+<article class="workspace-card">
+    <h3>Experimental Interest</h3>
+
+    <p>
+        No experimental interest selected.
+    </p>
+</article>
+
+</div>
+
+{% endblock %}

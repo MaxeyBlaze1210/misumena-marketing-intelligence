@@ -1,0 +1,33 @@
+{% extends "workspace/base.html" %}
+
+{% block content %}
+    <h2>Assets</h2>
+
+    <div class="workspace-card-grid">
+        <article class="workspace-card">
+            <h3>Artwork</h3>
+            <p>
+                {% if release.artwork_url %}
+                    Available
+                {% else %}
+                    Missing
+                {% endif %}
+            </p>
+        </article>
+
+        <article class="workspace-card">
+            <h3>Music video</h3>
+            <p>Not connected yet.</p>
+        </article>
+
+        <article class="workspace-card">
+            <h3>Short-form creatives</h3>
+            <p>Not connected yet.</p>
+        </article>
+
+        <article class="workspace-card">
+            <h3>Audio master</h3>
+            <p>Not connected yet.</p>
+        </article>
+    </div>
+{% endblock %}

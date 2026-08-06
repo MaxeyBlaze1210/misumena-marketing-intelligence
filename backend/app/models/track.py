@@ -13,10 +13,15 @@ class Track(Base):
 
     isrc = Column(String, unique=True)
 
-    spotify_id = Column(String)
+    spotify_track_id = Column(String, unique=True)
 
     duration_ms = Column(Integer)
 
+    track_number = Column(Integer)
+
     release_id = Column(Integer, ForeignKey("releases.id"))
 
-    release = relationship("Release", back_populates="tracks")
+    release = relationship(
+        "Release",
+        back_populates="tracks",
+    )

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>{{ release.title }} — MMI Workspace</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/workspace.css"
+    >
+</head>
+
+<body>
+    <main class="workspace">
+        <a
+            class="back-link"
+            href="/workspace/releases"
+        >
+            ← Back to releases
+        </a>
+
+        <section class="release-hero">
+            {% if release.artwork_url %}
+                <img
+                    class="release-detail-artwork"
+                    src="{{ release.artwork_url }}"
+                    alt="{{ release.title }} artwork"
+                >
+            {% endif %}
+
+            <div>
+                <p class="eyebrow">Release workspace</p>
+
+                <h1>{{ release.title }}</h1>
+
+                <p class="release-artist">
+                    {{ release.artist }}
+                </p>
+
+                <p>
+                    Release date:
+                    {{ release.release_date }}
+                </p>
+
+                {% if release.landing_slug %}
+                    <a
+                        class="primary-button"
+                        href="/r/{{ release.landing_slug }}"
+                        target="_blank"
+                    >
+                        Open public page
+                    </a>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="workspace-section">
+            <h2>Release status</h2>
+
+            <div class="status-list">
+                <div>
+                    <span>Landing page</span>
+
+                    {% if release.landing_slug %}
+                        <strong>Ready</strong>
+                    {% else %}
+                        <strong>Missing</strong>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <span>Spotify</span>
+
+                    {% if release.spotify_url %}
+                        <strong>Connected</strong>
+                    {% else %}
+                        <strong>Missing</strong>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <span>Apple Music</span>
+
+                    {% if release.apple_music_url %}
+                        <strong>Connected</strong>
+                    {% else %}
+                        <strong>Missing</strong>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <span>YouTube</span>
+
+                    {% if release.youtube_url %}
+                        <strong>Connected</strong>
+                    {% else %}
+                        <strong>Missing</strong>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <span>Bandcamp</span>
+
+                    {% if release.bandcamp_url %}
+                        <strong>Connected</strong>
+                    {% else %}
+                        <strong>Missing</strong>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

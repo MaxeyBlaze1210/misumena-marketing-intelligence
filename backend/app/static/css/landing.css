@@ -1,0 +1,105 @@
+body {
+
+    font-family: Arial, Helvetica, sans-serif;
+
+    background: #111;
+
+    color: white;
+
+    text-align: center;
+
+    margin: 0;
+
+}
+
+.container{
+
+    max-width:700px;
+
+    margin:auto;
+
+    padding:40px;
+
+}
+
+.cover{
+
+    width:320px;
+
+    border-radius:18px;
+
+    box-shadow:0 8px 30px rgba(0,0,0,.4);
+
+}
+
+h1{
+
+    margin-top:30px;
+
+    font-size:42px;
+
+}
+
+h2{
+
+    color:#cccccc;
+
+    font-weight:normal;
+
+    margin-bottom:30px;
+
+}
+
+.description{
+
+    color:#bbbbbb;
+
+    line-height:1.6;
+
+}
+
+.buttons{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:18px;
+
+    margin-top:40px;
+
+}
+
+.button{
+
+    background:white;
+
+    color:black;
+
+    padding:18px;
+
+    text-decoration:none;
+
+    border-radius:14px;
+
+    font-size:20px;
+
+    font-weight:bold;
+
+}
+
+.spotify{
+
+    background:#1DB954;
+
+    color:white;
+
+}
+
+.button:hover{
+
+    transform:scale(1.03);
+
+    transition:.2s;
+
+}

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>MMI Workspace</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/workspace.css"
+    >
+</head>
+
+<body>
+    <main class="workspace">
+        <header class="workspace-header">
+            <div>
+                <p class="eyebrow">Misumena Marketing Intelligence</p>
+                <h1>Releases</h1>
+            </div>
+
+            <a
+                class="primary-button"
+                href="/workspace/releases/new"
+            >
+                New release
+            </a>
+        </header>
+
+        <section class="release-grid">
+            {% for release in releases %}
+                <article class="release-card">
+                    {% if release.artwork_url %}
+                        <img
+                            class="release-artwork"
+                            src="{{ release.artwork_url }}"
+                            alt="{{ release.title }} artwork"
+                        >
+                    {% endif %}
+
+                    <div class="release-card-content">
+                        <p class="release-date">
+                            {{ release.release_date }}
+                        </p>
+
+                        <h2>{{ release.title }}</h2>
+                        <p>{{ release.artist }}</p>
+
+                        <div class="release-actions">
+                            <a href="/workspace/releases/{{ release.id }}">
+                                Open workspace
+                            </a>
+
+                            {% if release.landing_slug %}
+                                <a
+                                    href="/r/{{ release.landing_slug }}"
+                                    target="_blank"
+                                >
+                                    Open public page
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </article>
+            {% else %}
+                <p>No releases found.</p>
+            {% endfor %}
+        </section>
+    </main>
+</body>
+</html>
