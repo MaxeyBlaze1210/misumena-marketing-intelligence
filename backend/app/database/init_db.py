@@ -15,6 +15,9 @@ from app.models.meta_ad_metric import MetaAdMetric
 from app.models.meta_audience import MetaAudience
 from app.models.meta_audience_interest import MetaAudienceInterest
 from app.models.meta_campaign_plan import MetaCampaignPlan
+from app.models.country import Country
+from app.models.country_preset import CountryPreset
+from app.models.country_preset_country import CountryPresetCountry
 
 def init_db():
     Base.metadata.create_all(bind=engine)

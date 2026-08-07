@@ -1,0 +1,81 @@
+<article class="workspace-card">
+    <h3>Meta Campaign Builder</h3>
+
+    {% if campaign_plan %}
+        <dl class="campaign-plan-details">
+
+            <div>
+                <dt>Meta audience</dt>
+                <dd>
+                    {% if campaign_plan.meta_audience %}
+                        {{ campaign_plan.meta_audience.name }}
+                    {% else %}
+                        Not selected
+                    {% endif %}
+                </dd>
+            </div>
+
+            <div>
+                <dt>Objective</dt>
+                <dd>Conversions</dd>
+            </div>
+
+            <div>
+                <dt>Optimization</dt>
+                <dd>{{ campaign_plan.optimization_goal }}</dd>
+            </div>
+
+            <div>
+                <dt>Conversion event</dt>
+                <dd>{{ campaign_plan.conversion_event }}</dd>
+            </div>
+
+            <div>
+                <dt>Countries</dt>
+                <dd>
+                    {% if selected_country_preset %}
+                        {{ selected_country_preset.name }}
+                        ({{ selected_country_count }} countries)
+
+                        {% if selected_countries %}
+                            <ul class="country-list">
+                                {% for country in selected_countries %}
+                                    <li>{{ country.name }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+
+                    {% else %}
+                        Not selected
+                    {% endif %}
+                </dd>
+            </div>
+
+            <div>
+                <dt>Age</dt>
+                <dd>
+                    {{ campaign_plan.age_min }}–{{ campaign_plan.age_max }}
+                </dd>
+            </div>
+
+            <div>
+                <dt>Daily budget</dt>
+                <dd>
+                    {% if campaign_plan.daily_budget %}
+                        €{{ campaign_plan.daily_budget }}
+                    {% else %}
+                        Not selected
+                    {% endif %}
+                </dd>
+            </div>
+
+            <div>
+                <dt>Status</dt>
+                <dd>{{ campaign_plan.status | title }}</dd>
+            </div>
+
+        </dl>
+    {% else %}
+        <p>No campaign plan created yet.</p>
+    {% endif %}
+</article>

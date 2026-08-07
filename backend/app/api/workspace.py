@@ -8,6 +8,10 @@ from app.models.meta_audience import MetaAudience
 from app.models.meta_campaign_plan import MetaCampaignPlan
 from app.models.meta_audience_interest import MetaAudienceInterest
 from app.models.meta_interest import MetaInterest
+from app.models.country_preset import CountryPreset
+from app.models.country_preset_country import CountryPresetCountry
+from app.models.country import Country
+
 
 router = APIRouter(
     prefix="/workspace",
@@ -89,6 +93,44 @@ def release_promotion(
             .one_or_none()
         )
 
+        selected_country_preset = None
+        selected_country_count = 0
+        selected_countries = []
+
+        if campaign_plan and campaign_plan.country_preset_id:
+            selected_country_preset = (
+                db.query(CountryPreset)
+                .filter(
+                    CountryPreset.id
+                    == campaign_plan.country_preset_id
+                )
+                .one_or_none()
+            )
+
+            selected_country_count = (
+                db.query(CountryPresetCountry)
+                .filter(
+                    CountryPresetCountry.country_preset_id
+                    == campaign_plan.country_preset_id
+                )
+                .count()
+            )
+
+            selected_countries = (
+                db.query(Country)
+                .join(
+                    CountryPresetCountry,
+                    Country.id
+                    == CountryPresetCountry.country_id,
+                )
+                .filter(
+                    CountryPresetCountry.country_preset_id
+                    == campaign_plan.country_preset_id
+                )
+                .order_by(Country.name)
+                .all()
+            )
+
         trusted_interests = []
 
         if campaign_plan is not None:
@@ -117,6 +159,9 @@ def release_promotion(
                 "meta_audiences": meta_audiences,
                 "campaign_plan": campaign_plan,
                 "trusted_interests": trusted_interests,
+                "selected_country_preset": selected_country_preset,
+                "selected_country_count": selected_country_count,
+                "selected_countries": selected_countries,
             },
         )
 

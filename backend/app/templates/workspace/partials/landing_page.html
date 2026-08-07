@@ -1,0 +1,16 @@
+<article class="workspace-card">
+    <h3>Landing Page</h3>
+
+    {% if release.landing_slug %}
+        <p>Ready and available.</p>
+
+        <a
+            href="/r/{{ release.landing_slug }}"
+            target="_blank"
+        >
+            Open landing page
+        </a>
+    {% else %}
+        <p>Not configured yet.</p>
+    {% endif %}
+</article>

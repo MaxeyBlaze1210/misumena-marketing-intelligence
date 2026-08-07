@@ -86,3 +86,25 @@ class MetaCampaignPlan(Base):
     meta_audience = relationship(
         "MetaAudience",
     )
+
+    country_preset_id = Column(
+        Integer,
+        ForeignKey("country_presets.id"),
+        nullable=True,
+    )
+
+    country_preset_relation = relationship(
+        "CountryPreset",
+    )   
+
+    age_min = Column(
+        Integer,
+        nullable=False,
+        default=18,
+    )
+
+    age_max = Column(
+        Integer,
+        nullable=False,
+        default=64,
+    )     
