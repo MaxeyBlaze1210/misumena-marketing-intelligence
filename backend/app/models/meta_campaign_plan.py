@@ -2,12 +2,14 @@ from datetime import datetime, timezone
 
 from sqlalchemy import (
     Column,
+    Date,
     DateTime,
     ForeignKey,
     Integer,
     Numeric,
     String,
 )
+
 from sqlalchemy.orm import relationship
 
 from app.database.database import Base
@@ -107,4 +109,20 @@ class MetaCampaignPlan(Base):
         Integer,
         nullable=False,
         default=64,
+    )    
+
+    campaign_type = Column(
+        String,
+        nullable=False,
+        default="interest",
+    )
+
+    start_date = Column(
+        Date,
+        nullable=True,
+    )
+
+    end_date = Column(
+        Date,
+        nullable=True,
     )     

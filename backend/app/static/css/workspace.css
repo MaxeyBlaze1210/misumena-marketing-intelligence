@@ -284,3 +284,13 @@ h1 {
 .country-list li {
     margin-bottom: 4px;
 }
+
+.country-details summary {
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.country-details .country-list {
+    margin-top: 10px;
+    padding-left: 20px;
+}

@@ -15,6 +15,17 @@
                 </dd>
             </div>
 
+<div>
+    <dt>Campaign type</dt>
+    <dd>
+        {% if campaign_plan.campaign_type == "broad" %}
+            Broad
+        {% else %}
+            Interest
+        {% endif %}
+    </dd>
+</div>
+
             <div>
                 <dt>Objective</dt>
                 <dd>Conversions</dd>
@@ -30,26 +41,31 @@
                 <dd>{{ campaign_plan.conversion_event }}</dd>
             </div>
 
-            <div>
-                <dt>Countries</dt>
-                <dd>
-                    {% if selected_country_preset %}
-                        {{ selected_country_preset.name }}
-                        ({{ selected_country_count }} countries)
+<div>
+    <dt>Countries</dt>
+    <dd>
+        {% if selected_country_preset %}
 
-                        {% if selected_countries %}
-                            <ul class="country-list">
-                                {% for country in selected_countries %}
-                                    <li>{{ country.name }}</li>
-                                {% endfor %}
-                            </ul>
-                        {% endif %}
+            <details class="country-details">
+                <summary>
+                    {{ selected_country_preset.name }}
+                    ({{ selected_country_count }} countries)
+                </summary>
 
-                    {% else %}
-                        Not selected
-                    {% endif %}
-                </dd>
-            </div>
+                {% if selected_countries %}
+                    <ul class="country-list">
+                        {% for country in selected_countries %}
+                            <li>{{ country.name }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </details>
+
+        {% else %}
+            Not selected
+        {% endif %}
+    </dd>
+</div>
 
             <div>
                 <dt>Age</dt>
@@ -59,15 +75,30 @@
             </div>
 
             <div>
-                <dt>Daily budget</dt>
+                <dt>Campaign budget</dt>
                 <dd>
                     {% if campaign_plan.daily_budget %}
-                        €{{ campaign_plan.daily_budget }}
+                        €{{ "%.0f"|format(campaign_plan.daily_budget) }}
                     {% else %}
                         Not selected
                     {% endif %}
                 </dd>
             </div>
+
+<div>
+    <dt>Schedule</dt>
+    <dd>
+        {% if campaign_plan.start_date and campaign_plan.end_date %}
+            {{ campaign_plan.start_date }}
+            →
+            {{ campaign_plan.end_date }}
+        {% elif campaign_plan.start_date %}
+            Starts {{ campaign_plan.start_date }}
+        {% else %}
+            Not selected
+        {% endif %}
+    </dd>
+</div>
 
             <div>
                 <dt>Status</dt>
