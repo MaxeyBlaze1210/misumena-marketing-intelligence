@@ -1,18 +1,31 @@
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-DATABASE_URL = "sqlite:///./mmi.db"
+
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "sqlite:///./mmi.db",
+)
+
+engine_kwargs = {}
+
+if DATABASE_URL.startswith("sqlite"):
+    engine_kwargs["connect_args"] = {
+        "check_same_thread": False
+    }
 
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False}
+    **engine_kwargs,
 )
 
 SessionLocal = sessionmaker(
     autoflush=False,
     autocommit=False,
-    bind=engine
+    bind=engine,
 )
 
 Base = declarative_base()
@@ -20,7 +33,9 @@ Base = declarative_base()
 
 def get_db():
     db = SessionLocal()
+
     try:
         yield db
+
     finally:
         db.close()

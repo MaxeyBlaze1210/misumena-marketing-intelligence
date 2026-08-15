@@ -35,6 +35,10 @@ class MetaAdMetric(Base):
 
     video_views = Column(Integer)
 
+    post_likes = Column(Integer)
+    post_saves = Column(Integer)
+    post_reactions = Column(Integer)
+
     ad = relationship(
         "MetaAd",
         back_populates="metrics",

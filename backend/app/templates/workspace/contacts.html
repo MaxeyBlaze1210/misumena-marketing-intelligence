@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Contacts — MMI Workspace</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/workspace.css?v=contacts1"
+    >
+</head>
+
+<body>
+    <main class="workspace">
+
+        <nav class="top-workspace-tabs">
+            <a href="/workspace/releases">
+                Releases
+            </a>
+
+            <a href="/workspace/playlists">
+                Playlists
+            </a>
+
+            <a
+                class="active"
+                href="/workspace/contacts"
+            >
+                Contacts
+            </a>
+
+            <a href="/workspace/research">
+                Research
+            </a>
+        </nav>
+
+        <header class="workspace-header">
+            <div>
+                <p class="eyebrow">
+                    Misumena Marketing Intelligence
+                </p>
+
+                <h1>Contacts</h1>
+
+                <p>
+                    Promo recipients across all releases.
+                </p>
+            </div>
+            <a
+                href="/workspace/contacts/new"
+                class="primary-button"
+            >
+                + Add contact
+            </a>
+        </header>
+
+        {% if contacts %}
+
+        <section class="contacts-card">
+
+            <div class="contacts-toolbar">
+                <input
+                    id="contact-search"
+                    class="contact-search"
+                    type="search"
+                    placeholder="Search contacts..."
+                    autocomplete="off"
+                >
+
+                <span class="contact-count">
+                    {{ contacts|length }} contacts
+                </span>
+            </div>
+
+            <div class="contact-filters">
+                <button class="contact-filter active" data-filter="all">
+                    All
+                </button>
+                <button class="contact-filter" data-filter="radio">
+                    Radio
+                </button>
+                <button class="contact-filter" data-filter="dj">
+                    DJs
+                </button>
+                <button class="contact-filter" data-filter="spotify_curator">
+                    Spotify curators
+                </button>
+                <button class="contact-filter" data-filter="blog">
+                    Blogs / Press
+                </button>
+                <button class="contact-filter" data-filter="label">
+                    Labels
+                </button>
+                <button class="contact-filter" data-filter="other">
+                    Other
+                </button>
+            </div>
+
+            <div class="contacts-table-wrap">
+                <table class="contacts-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Organization</th>
+                            <th>Email</th>
+                            <th>Type</th>
+                            <th>Country</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="contacts-body">
+                        {% for contact in contacts %}
+                        <tr
+                            data-type="{{ contact.contact_type or 'other' }}"
+                            data-search="
+                                {{ contact.name or '' }}
+                                {{ contact.organization or '' }}
+                                {{ contact.email }}
+                                {{ contact.contact_type or '' }}
+                                {{ contact.country or '' }}
+                            "
+                        >
+                            <td>
+                                {{ contact.name or "—" }}
+                            </td>
+
+                            <td>
+                                {{ contact.organization or "—" }}
+                            </td>
+
+                            <td>
+                                {{ contact.email }}
+                            </td>
+
+                            <td>
+                                {{ contact.contact_type or "—" }}
+                            </td>
+
+                            <td>
+                                {{ contact.country or "—" }}
+                            </td>
+
+                            <td>
+                                {% if contact.do_not_contact %}
+                                    <span class="contact-status-stop">
+                                        Do not contact
+                                    </span>
+                                {% else %}
+                                    <span class="contact-status-ok">
+                                        Active
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <td class="contact-actions">
+                                <a
+                                    href="/workspace/contacts/{{ contact.id }}/edit"
+                                    class="contact-edit-link"
+                                >
+                                    Edit
+                                </a>
+
+                                <form
+                                    method="post"
+                                    action="/workspace/contacts/{{ contact.id }}/delete"
+                                    onsubmit="return confirm('Delete this contact?');"
+                                >
+                                    <button
+                                        type="submit"
+                                        class="contact-delete-button"
+                                    >
+                                        Delete
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        </section>
+
+        {% else %}
+
+        <section class="contacts-empty">
+            <h2>No contacts yet</h2>
+
+            <p>
+                Your promo recipient database will appear here.
+            </p>
+
+            <p>
+                Next we'll reconstruct it from your historical
+                Outlook promo emails.
+            </p>
+        </section>
+
+        {% endif %}
+
+    </main>
+
+    <script>
+        const search = document.getElementById("contact-search");
+        const filters = document.querySelectorAll(".contact-filter");
+
+        let activeFilter = "all";
+
+        function updateContacts() {
+            const query = search
+                ? search.value.toLowerCase().trim()
+                : "";
+
+            document
+                .querySelectorAll("#contacts-body tr")
+                .forEach((row) => {
+                    const matchesSearch =
+                        row.dataset.search
+                            .toLowerCase()
+                            .includes(query);
+
+                    const matchesType =
+                        activeFilter === "all" ||
+                        row.dataset.type === activeFilter;
+
+                    row.hidden = !(matchesSearch && matchesType);
+                });
+        }
+
+        if (search) {
+            search.addEventListener("input", updateContacts);
+        }
+
+        filters.forEach((button) => {
+            button.addEventListener("click", () => {
+                activeFilter = button.dataset.filter;
+
+                filters.forEach((item) => {
+                    item.classList.remove("active");
+                });
+
+                button.classList.add("active");
+                updateContacts();
+            });
+        });
+    </script>
+
+</body>
+</html>

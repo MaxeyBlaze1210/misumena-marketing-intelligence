@@ -1,33 +1,160 @@
 {% extends "workspace/base.html" %}
 
 {% block content %}
+
+<div class="asset-page-heading">
     <h2>Assets</h2>
 
-    <div class="workspace-card-grid">
-        <article class="workspace-card">
-            <h3>Artwork</h3>
+    <form
+        method="post"
+        action="/workspace/releases/{{ release.id }}/assets/sync-promo"
+    >
+        <button
+            type="submit"
+            class="primary-button"
+        >
+            Sync promo assets
+        </button>
+    </form>
+</div>
+
+{% if request.query_params.get("promo_asset_status") %}
+    <div class="sync-banner
+        {% if request.query_params.get("promo_asset_status") == "success" %}
+            sync-banner-ok
+        {% else %}
+            sync-banner-error
+        {% endif %}
+    ">
+        {{ request.query_params.get("promo_asset_message", "") }}
+    </div>
+{% endif %}
+
+<div class="workspace-card-grid">
+
+    <article class="workspace-card">
+        <h3>Artwork</h3>
+        <p>
+            {% if release.artwork_url %}
+                Available
+            {% else %}
+                Missing
+            {% endif %}
+        </p>
+    </article>
+
+    <article class="workspace-card">
+        <h3>Music video</h3>
+
+        {% if music_video %}
+
             <p>
-                {% if release.artwork_url %}
-                    Available
-                {% else %}
-                    Missing
+                <strong>
+                    {{ music_video.file_name or music_video.name }}
+                </strong>
+            </p>
+
+            <p class="asset-meta">
+                Dropbox
+                {% if music_video.mime_type %}
+                    · {{ music_video.mime_type }}
                 {% endif %}
             </p>
-        </article>
 
-        <article class="workspace-card">
-            <h3>Music video</h3>
-            <p>Not connected yet.</p>
-        </article>
+        {% else %}
 
-        <article class="workspace-card">
-            <h3>Short-form creatives</h3>
-            <p>Not connected yet.</p>
-        </article>
+            <p>
+                Not connected yet.
+            </p>
 
-        <article class="workspace-card">
-            <h3>Audio master</h3>
-            <p>Not connected yet.</p>
-        </article>
-    </div>
+        {% endif %}
+    </article>
+
+    <article class="workspace-card">
+        <h3>Audio master</h3>
+
+        {% if promo_audio %}
+
+            <p>
+                <strong>
+                    {{ promo_audio.file_name or promo_audio.name }}
+                </strong>
+            </p>
+
+            <p class="asset-meta">
+                Dropbox
+                {% if promo_audio.mime_type %}
+                    · {{ promo_audio.mime_type }}
+                {% endif %}
+            </p>
+
+            {% if promo_audio.source_url %}
+                <p>
+                    <a
+                        href="{{ promo_audio.source_url }}"
+                        target="_blank"
+                    >
+                        Open audio
+                    </a>
+                </p>
+            {% endif %}
+
+        {% else %}
+
+            <p>
+                Not connected yet.
+            </p>
+
+        {% endif %}
+    </article>
+
+</div>
+
+
+<article class="workspace-card asset-library-card">
+    <h3>Short-form creatives</h3>
+
+    {% if short_form_creatives %}
+
+        <p>
+            {{ short_form_creatives | length }}
+            creatives synced from Dropbox.
+        </p>
+
+        <div class="asset-list">
+
+            {% for asset in short_form_creatives %}
+                <div class="asset-row">
+
+                    <div>
+                        <strong>
+                            {{ asset.file_name or asset.name }}
+                        </strong>
+
+                        <div class="asset-meta">
+                            Dropbox
+                            {% if asset.mime_type %}
+                                · {{ asset.mime_type }}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="asset-source-id">
+                        {{ asset.source_id }}
+                    </div>
+
+                </div>
+            {% endfor %}
+
+        </div>
+
+    {% else %}
+
+        <p>
+            No short-form creatives synced yet.
+        </p>
+
+    {% endif %}
+</article>
+
 {% endblock %}

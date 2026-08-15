@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>New release — MMI Workspace</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/workspace.css"
+    >
+</head>
+
+<body>
+
+<main class="workspace">
+
+    <nav class="top-workspace-tabs">
+        <a
+            class="active"
+            href="/workspace/releases"
+        >
+            Releases
+        </a>
+
+        <a href="/workspace/playlists">
+            Playlists
+        </a>
+
+        <a href="/workspace/contacts">
+            Contacts
+        </a>
+
+        <a href="/workspace/research">
+            Research
+        </a>
+    </nav>
+
+
+    <header class="workspace-header">
+
+        <div>
+            <p class="eyebrow">
+                Misumena Marketing Intelligence
+            </p>
+
+            <h1>New release</h1>
+        </div>
+
+    </header>
+
+
+    <article class="workspace-card">
+
+        {% if error %}
+            <div style="
+                padding:12px 14px;
+                margin-bottom:18px;
+                border:1px solid #d99;
+                border-radius:8px;
+            ">
+                {{ error }}
+            </div>
+        {% endif %}
+
+
+        <form
+            method="post"
+            action="/workspace/releases/new"
+            style="
+                display:grid;
+                gap:18px;
+                max-width:600px;
+            "
+        >
+
+            <label>
+                <div style="
+                    font-weight:600;
+                    margin-bottom:6px;
+                ">
+                    Title
+                </div>
+
+                <input
+                    type="text"
+                    name="title"
+                    value="{{ title or '' }}"
+                    required
+                    style="
+                        width:100%;
+                        box-sizing:border-box;
+                    "
+                >
+            </label>
+
+
+            <label>
+                <div style="
+                    font-weight:600;
+                    margin-bottom:6px;
+                ">
+                    Artist
+                </div>
+
+                <input
+                    type="text"
+                    name="artist"
+                    value="{{ artist or 'Misumena' }}"
+                    required
+                    style="
+                        width:100%;
+                        box-sizing:border-box;
+                    "
+                >
+            </label>
+
+
+            <label>
+                <div style="
+                    font-weight:600;
+                    margin-bottom:6px;
+                ">
+                    Release date
+                </div>
+
+                <input
+                    type="date"
+                    name="release_date"
+                    value="{{ release_date or '' }}"
+                    required
+                >
+            </label>
+
+
+            <div style="
+                display:flex;
+                gap:10px;
+                margin-top:6px;
+            ">
+
+                <button
+                    type="submit"
+                    class="primary-button"
+                >
+                    Create release
+                </button>
+
+                <a
+                    href="/workspace/releases"
+                    class="secondary-button"
+                >
+                    Cancel
+                </a>
+
+            </div>
+
+        </form>
+
+    </article>
+
+</main>
+
+</body>
+</html>

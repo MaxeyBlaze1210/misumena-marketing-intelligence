@@ -1,37 +1,615 @@
 {% extends "workspace/base.html" %}
 
 {% block content %}
-    <h2>Analytics</h2>
 
-    <div class="workspace-card-grid">
-        <article class="workspace-card">
-            <h3>Meta</h3>
-            <p>Spend, results and creative performance.</p>
-        </article>
+<h2>Analytics</h2>
 
-        <article class="workspace-card">
-            <h3>Spotify</h3>
-            <p>Streams, listeners and followers.</p>
-        </article>
+<article class="workspace-card">
 
-        <article class="workspace-card">
-            <h3>YouTube</h3>
-            <p>Views, watch time and subscribers.</p>
-        </article>
+    <h3>Meta</h3>
 
-        <article class="workspace-card">
-            <h3>Instagram</h3>
-            <p>Followers and Reel performance.</p>
-        </article>
+    {% if meta_checkpoint_options %}
 
-        <article class="workspace-card">
-            <h3>Bandcamp</h3>
-            <p>Sales and revenue.</p>
-        </article>
+        <div style="
+            display:flex;
+            gap:8px;
+            flex-wrap:wrap;
+            margin-bottom:18px;
+        ">
+            {% for option in meta_checkpoint_options %}
+                <a
+                    href="/workspace/releases/{{ release.id }}/analytics?checkpoint={{ option.value }}"
+                    style="
+                        padding:6px 10px;
+                        border:1px solid #ddd;
+                        border-radius:6px;
+                        text-decoration:none;
+                        {% if meta_checkpoint == option.value %}
+                            font-weight:700;
+                            border-color:#555;
+                        {% endif %}
+                    "
+                >
+                    {{ option.label }}
+                </a>
+            {% endfor %}
+        </div>
 
-        <article class="workspace-card">
-            <h3>GEMA</h3>
-            <p>Royalty data.</p>
-        </article>
-    </div>
+        <p style="
+            margin-top:-8px;
+            margin-bottom:20px;
+            color:#777;
+            font-size:13px;
+        ">
+            Cumulative evidence through
+            {{ meta_checkpoint_date }}.
+        </p>
+
+
+        <h4>Campaign performance</h4>
+
+        <div style="
+            display:grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(120px, 1fr));
+            gap:12px;
+            margin-bottom:28px;
+        ">
+            <div>
+                <strong>
+                    €{{ "%.2f"|format(meta_summary.spend) }}
+                </strong>
+                <br><small>Spend</small>
+            </div>
+
+            <div>
+                <strong>{{ meta_summary.results }}</strong>
+                <br><small>Results</small>
+            </div>
+
+            <div>
+                <strong>
+                    {% if meta_summary.cost_per_result is not none %}
+                        €{{ "%.3f"|format(meta_summary.cost_per_result) }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </strong>
+                <br><small>CPR</small>
+            </div>
+
+            <div>
+                <strong>{{ meta_summary.impressions }}</strong>
+                <br><small>Impressions</small>
+            </div>
+
+            <div>
+                <strong>
+                    {% if meta_summary.ctr is not none %}
+                        {{ "%.2f"|format(meta_summary.ctr) }}%
+                    {% else %}
+                        —
+                    {% endif %}
+                </strong>
+                <br><small>CTR</small>
+            </div>
+
+            <div>
+                <strong>
+                    {{ meta_summary.landing_page_views }}
+                </strong>
+                <br><small>Landing-page views</small>
+            </div>
+        </div>
+
+
+        <h4>Targeting-arm performance</h4>
+
+        <div style="
+            display:grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(210px, 1fr));
+            gap:12px;
+            margin-bottom:30px;
+        ">
+            {% for arm in meta_arm_summaries %}
+                <div style="
+                    border:1px solid #e5e5e5;
+                    border-radius:8px;
+                    padding:14px;
+                ">
+                    <strong>{{ arm.name }}</strong>
+
+                    <div style="
+                        margin-top:10px;
+                        line-height:1.7;
+                        font-size:14px;
+                    ">
+                        €{{ "%.2f"|format(arm.spend) }} spend
+                        <br>
+                        {{ arm.results }} results
+                        <br>
+                        {% if arm.cost_per_result is not none %}
+                            €{{ "%.3f"|format(arm.cost_per_result) }} CPR
+                        {% else %}
+                            — CPR
+                        {% endif %}
+                        <br>
+                        {{ arm.impressions }} impressions
+                        <br>
+                        {% if arm.ctr is not none %}
+                            {{ "%.2f"|format(arm.ctr) }}% CTR
+                        {% else %}
+                            — CTR
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+
+        <h4>Creative × targeting performance</h4>
+
+        <p style="
+            color:#777;
+            font-size:13px;
+        ">
+            Each cell represents one creative within one
+            targeting arm.
+        </p>
+
+        <div style="
+            overflow-x:auto;
+            margin-bottom:30px;
+        ">
+            <table style="
+                width:100%;
+                border-collapse:collapse;
+                min-width:850px;
+            ">
+                <thead>
+                    <tr>
+                        <th style="
+                            text-align:left;
+                            padding:10px;
+                        ">
+                            Creative
+                        </th>
+
+                        {% for arm in meta_arms %}
+                            <th style="
+                                text-align:left;
+                                padding:10px;
+                            ">
+                                {{ arm }}
+                            </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for creative in meta_creative_matrix %}
+                        <tr>
+                            <td style="
+                                padding:10px;
+                                vertical-align:top;
+                                border-top:1px solid #eee;
+                                font-weight:600;
+                            ">
+                                {{ creative.name }}
+                            </td>
+
+                            {% for cell in creative.cells %}
+                                <td style="
+                                    padding:10px;
+                                    vertical-align:top;
+                                    border-top:1px solid #eee;
+                                ">
+                                    {% if cell %}
+                                        <strong>
+                                            {% if cell.cost_per_result is not none %}
+                                                €{{ "%.3f"|format(cell.cost_per_result) }}
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                            CPR
+                                        </strong>
+                                        <br>
+
+                                        <span style="
+                                            font-size:13px;
+                                            line-height:1.6;
+                                        ">
+                                            €{{ "%.2f"|format(cell.spend) }}
+                                            spend
+                                            <br>
+                                            {{ cell.results }}
+                                            results
+                                            <br>
+                                            {{ cell.impressions }}
+                                            impressions
+                                            <br>
+                                            {% if cell.ctr is not none %}
+                                                {{ "%.2f"|format(cell.ctr) }}%
+                                                CTR
+                                            {% else %}
+                                                — CTR
+                                            {% endif %}
+                                        </span>
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+
+        <h4>Early engagement</h4>
+
+        <p style="
+            color:#777;
+            font-size:13px;
+        ">
+            Paid-ad engagement accumulated through
+            {{ meta_checkpoint_label }}.
+        </p>
+
+        <div style="overflow-x:auto;">
+            <table style="
+                width:100%;
+                border-collapse:collapse;
+                min-width:850px;
+            ">
+                <thead>
+                    <tr>
+                        <th style="
+                            text-align:left;
+                            padding:10px;
+                        ">
+                            Creative
+                        </th>
+
+                        {% for arm in meta_arms %}
+                            <th style="
+                                text-align:left;
+                                padding:10px;
+                            ">
+                                {{ arm }}
+                            </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for creative in meta_creative_matrix %}
+                        <tr>
+                            <td style="
+                                padding:10px;
+                                vertical-align:top;
+                                border-top:1px solid #eee;
+                                font-weight:600;
+                            ">
+                                {{ creative.name }}
+                            </td>
+
+                            {% for cell in creative.cells %}
+                                <td style="
+                                    padding:10px;
+                                    vertical-align:top;
+                                    border-top:1px solid #eee;
+                                    font-size:13px;
+                                    line-height:1.6;
+                                ">
+                                    {% if cell %}
+                                        <strong>
+                                            {{ cell.post_likes }}
+                                            likes
+                                        </strong>
+                                        <br>
+
+                                        {% if cell.like_rate is not none %}
+                                            {{ "%.2f"|format(cell.like_rate) }}%
+                                            like rate
+                                        {% else %}
+                                            — like rate
+                                        {% endif %}
+                                        <br>
+
+                                        {{ cell.post_saves }}
+                                        saves
+                                        <br>
+
+                                        {{ cell.post_reactions }}
+                                        reactions
+                                        <br>
+
+                                        {{ cell.video_views }}
+                                        video views
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    {% else %}
+
+        <p>
+            No Meta analytics have been imported
+            for this release yet.
+        </p>
+
+    {% endif %}
+
+</article>
+
+
+<div class="workspace-card-grid">
+
+    
+
+    <article class="workspace-card">
+        <h3>YouTube</h3>
+
+        {% if youtube_analytics %}
+
+            <p style="
+                color:#666;
+                line-height:1.5;
+            ">
+                Release-level YouTube performance and
+                organic-discovery evidence.
+            </p>
+
+            <div style="
+                display:grid;
+                grid-template-columns:
+                    repeat(auto-fit, minmax(120px, 1fr));
+                gap:12px;
+                margin:18px 0 24px;
+            ">
+
+                <div>
+                    <strong>
+                        {{ youtube_analytics.total_views }}
+                    </strong>
+                    <br>
+                    <small>Views</small>
+                </div>
+
+                <div>
+                    <strong>
+                        {{ "%.1f"|format(
+                            youtube_analytics.watch_hours
+                        ) }}
+                    </strong>
+                    <br>
+                    <small>Watch hours</small>
+                </div>
+
+                <div>
+                    <strong>
+                        {% if youtube_analytics.average_duration is not none %}
+                            {{ youtube_analytics.average_duration // 60 }}:{{
+                                "%02d"|format(
+                                    youtube_analytics.average_duration % 60
+                                )
+                            }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </strong>
+                    <br>
+                    <small>Avg. view duration</small>
+                </div>
+
+                <div>
+                    <strong>
+                        +{{ youtube_analytics.subscribers }}
+                    </strong>
+                    <br>
+                    <small>Subscribers</small>
+                </div>
+
+            </div>
+
+
+            <h4>Paid vs organic discovery</h4>
+
+            <div style="
+                display:grid;
+                grid-template-columns:
+                    repeat(auto-fit, minmax(130px, 1fr));
+                gap:12px;
+                margin-bottom:24px;
+            ">
+
+                <div>
+                    <strong>
+                        {{ youtube_analytics.paid_views }}
+                    </strong>
+                    <br>
+                    <small>Paid views</small>
+                </div>
+
+                <div>
+                    <strong>
+                        {{ youtube_analytics.organic_views }}
+                    </strong>
+                    <br>
+                    <small>Organic views</small>
+                </div>
+
+                <div>
+                    <strong>
+                        {{ "%.1f"|format(
+                            youtube_analytics.organic_share
+                        ) }}%
+                    </strong>
+                    <br>
+                    <small>Organic share</small>
+                </div>
+
+            </div>
+
+
+            <h4>Organic discovery sources</h4>
+
+            <div style="
+                display:grid;
+                grid-template-columns:
+                    repeat(auto-fit, minmax(110px, 1fr));
+                gap:12px;
+                margin-bottom:24px;
+            ">
+
+                <div>
+                    <strong>
+                        {{ youtube_analytics.search_views }}
+                    </strong>
+                    <br>
+                    <small>Search</small>
+                </div>
+
+                <div>
+                    <strong>
+                        {{ youtube_analytics.suggested_views }}
+                    </strong>
+                    <br>
+                    <small>Suggested</small>
+                </div>
+
+                <div>
+                    <strong>
+                        {{ youtube_analytics.playlist_views }}
+                    </strong>
+                    <br>
+                    <small>Playlists</small>
+                </div>
+
+                <div>
+                    <strong>
+                        {{ youtube_analytics.channel_views }}
+                    </strong>
+                    <br>
+                    <small>Channel</small>
+                </div>
+
+                <div>
+                    <strong>
+                        {{ youtube_analytics.external_views }}
+                    </strong>
+                    <br>
+                    <small>External</small>
+                </div>
+
+            </div>
+
+
+            {% if youtube_analytics.recommendations %}
+
+                <h4>
+                    YouTube is recommending this video from
+                </h4>
+
+                <ul style="
+                    padding-left:18px;
+                    line-height:1.6;
+                    margin-bottom:22px;
+                ">
+
+                    {% for item in youtube_analytics.recommendations %}
+
+                        <li>
+                            {% if item.recommended_channel %}
+                                <strong>
+                                    {{ item.recommended_channel }}
+                                </strong>
+                                —
+                            {% endif %}
+
+                            {{ item.recommended_title
+                               or item.recommended_video_id }}
+
+                            {% if item.views is not none %}
+                                · {{ item.views }} views
+                            {% endif %}
+                        </li>
+
+                    {% endfor %}
+
+                </ul>
+
+            {% endif %}
+
+
+            {% if youtube_analytics.search_terms %}
+
+                <h4>Search terms</h4>
+
+                <ul style="
+                    padding-left:18px;
+                    line-height:1.6;
+                    margin-bottom:22px;
+                ">
+
+                    {% for item in youtube_analytics.search_terms %}
+                        <li>
+                            {{ item.label or item.key }}
+                            · {{ item.views }} views
+                        </li>
+                    {% endfor %}
+
+                </ul>
+
+            {% endif %}
+
+
+            {% if youtube_analytics.countries %}
+
+                <h4>Top countries</h4>
+
+                <ul style="
+                    padding-left:18px;
+                    line-height:1.6;
+                    margin-bottom:0;
+                ">
+
+                    {% for item in youtube_analytics.countries %}
+                        <li>
+                            {{ item.label or item.key }}
+                            · {{ item.views }} views
+                        </li>
+                    {% endfor %}
+
+                </ul>
+
+            {% endif %}
+
+        {% else %}
+
+            <p>
+                No YouTube analytics have been imported
+                for this release yet.
+            </p>
+
+        {% endif %}
+    </article>
+
+    
+
+    
+
+    
+
+</div>
+
 {% endblock %}

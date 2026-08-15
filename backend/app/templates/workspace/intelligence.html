@@ -1,13 +1,291 @@
 {% extends "workspace/base.html" %}
 
 {% block content %}
-    <h2>Intelligence</h2>
 
-    <div class="workspace-card">
-        <h3>Campaign recommendations</h3>
-        <p>
-            Live Meta recommendations and proposed budget changes
-            will appear here.
-        </p>
-    </div>
+<h2>Intelligence</h2>
+
+
+<article class="workspace-card">
+
+    <h3>Decision intelligence</h3>
+
+    <p>
+        Interpretation of campaign evidence, decision checkpoints,
+        and recommendations for this release.
+    </p>
+
+    {% if futility_backcast %}
+
+        <div style="
+            margin-top:18px;
+            padding:16px;
+            border:1px solid #e3e3e3;
+            border-radius:10px;
+            background:#fafafa;
+        ">
+
+            <div style="
+                font-size:12px;
+                text-transform:uppercase;
+                letter-spacing:.06em;
+                color:#777;
+            ">
+                Retrospective backcast
+            </div>
+
+            <h4 style="margin-bottom:6px;">
+                Day-2 futility analysis
+            </h4>
+
+            <p style="
+                margin-top:0;
+                color:#666;
+            ">
+                Evidence frozen at
+                {{ futility_backcast.checkpoint_date }}.
+                {{ futility_backcast.cell_count }}
+                creative × targeting-arm cells.
+            </p>
+
+
+            <h5 style="
+                margin-top:20px;
+                margin-bottom:10px;
+            ">
+                Evidence available at the decision point
+            </h5>
+
+            <div style="
+                display:grid;
+                grid-template-columns:
+                    repeat(auto-fit, minmax(140px, 1fr));
+                gap:14px;
+                margin-top:10px;
+            ">
+
+                <div>
+                    <strong>
+                        €{{ "%.2f"|format(
+                            futility_backcast.day2_spend
+                        ) }}
+                    </strong>
+                    <br>
+                    <small>Cumulative spend through Day 2</small>
+                </div>
+
+                <div>
+                    <strong>
+                        {{ futility_backcast.day2_results }}
+                    </strong>
+                    <br>
+                    <small>Cumulative results through Day 2</small>
+                </div>
+
+                <div>
+                    <strong>
+                        {{ futility_backcast.cell_count }}
+                    </strong>
+                    <br>
+                    <small>Cells evaluated</small>
+                </div>
+
+            </div>
+
+
+            <h5 style="
+                margin-top:24px;
+                margin-bottom:10px;
+            ">
+                What happened after the Day-2 cutoff
+            </h5>
+
+            <div style="
+                display:grid;
+                grid-template-columns:
+                    repeat(auto-fit, minmax(140px, 1fr));
+                gap:14px;
+                margin-top:10px;
+            ">
+
+                <div>
+                    <strong>
+                        €{{ "%.2f"|format(
+                            futility_backcast.post_spend
+                        ) }}
+                    </strong>
+                    <br>
+                    <small>Additional spend after Day 2</small>
+                </div>
+
+                <div>
+                    <strong>
+                        {{ futility_backcast.post_results }}
+                    </strong>
+                    <br>
+                    <small>Additional results after Day 2</small>
+                </div>
+
+                <div>
+                    <strong>
+                        {% if futility_backcast.post_cpr is not none %}
+                            €{{ "%.3f"|format(
+                                futility_backcast.post_cpr
+                            ) }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </strong>
+                    <br>
+                    <small>Subsequent CPR</small>
+                </div>
+
+            </div>
+
+
+            {% if futility_backcast.rescued_cells %}
+
+                <div style="
+                    margin-top:22px;
+                    padding-top:16px;
+                    border-top:1px solid #ddd;
+                ">
+
+                    <strong>
+                        False-futility warning
+                    </strong>
+
+                    <p style="
+                        color:#666;
+                        line-height:1.5;
+                    ">
+                        These cells had zero results at
+                        Day 2 but produced results later.
+                        Zero early conversions alone would
+                        therefore have been an unsafe
+                        stopping rule.
+                    </p>
+
+                    {% for cell in futility_backcast.rescued_cells %}
+
+                        <div style="
+                            margin-top:12px;
+                            padding:12px;
+                            border:1px solid #ddd;
+                            border-radius:8px;
+                            background:white;
+                        ">
+
+                            <strong>
+                                {{ cell.creative }}
+                                ×
+                                {{ cell.arm }}
+                            </strong>
+
+                            <div style="
+                                margin-top:6px;
+                                color:#666;
+                            ">
+                                Day 2:
+                                €{{ "%.2f"|format(cell.day2_spend) }}
+                                spend ·
+                                {{ cell.day2_impressions }}
+                                impressions ·
+                                0 results
+
+                                <br>
+
+                                Later:
+                                {{ cell.post_results }}
+                                results ·
+
+                                {% if cell.post_cpr is not none %}
+                                    €{{ "%.3f"|format(cell.post_cpr) }}
+                                    CPR
+                                {% else %}
+                                    CPR —
+                                {% endif %}
+                            </div>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            {% endif %}
+
+
+            <div style="
+                margin-top:22px;
+                padding-top:16px;
+                border-top:1px solid #ddd;
+            ">
+
+                <strong>Current learning</strong>
+
+                <p style="
+                    margin-bottom:0;
+                    color:#555;
+                    line-height:1.5;
+                ">
+                    Day-2 futility cannot be based on
+                    zero results alone. Exposure and
+                    evidence strength must be considered
+                    before stopping a cell.
+                </p>
+
+            </div>
+
+        </div>
+
+    {% else %}
+
+        <div style="
+            margin-top:18px;
+            padding:16px;
+            border:1px solid #e3e3e3;
+            border-radius:10px;
+            background:#fafafa;
+        ">
+            <strong>Decision analysis</strong>
+
+            <p style="
+                margin:8px 0 0 0;
+                color:#666;
+            ">
+                Insufficient campaign evidence for
+                a Day-2 analysis.
+            </p>
+        </div>
+
+    {% endif %}
+
+</article>
+
+
+<article
+    class="workspace-card"
+    style="margin-top:24px;"
+>
+
+    <h3>Campaign operations</h3>
+
+    <p style="
+        color:#666;
+        line-height:1.5;
+    ">
+        Campaign configuration, Meta execution,
+        budgets and campaign controls are managed
+        under Promotion.
+    </p>
+
+    <a
+        href="/workspace/releases/{{ release.id }}/promotion"
+    >
+        Open Promotion
+    </a>
+
+</article>
+
+
 {% endblock %}

@@ -56,9 +56,25 @@ class MetaCampaignPlan(Base):
         default="ViewContent",
     )
 
+    meta_pixel_id = Column(
+        String,
+        nullable=True,
+    )
+
+    destination_url = Column(
+        String,
+        nullable=True,
+    )
+
+    call_to_action = Column(
+        String,
+        nullable=False,
+        default="LISTEN_NOW",
+    )
+
     country_preset = Column(String)
 
-    daily_budget = Column(
+    total_budget = Column(
         Numeric(10, 2),
     )
 
@@ -83,6 +99,17 @@ class MetaCampaignPlan(Base):
 
     release = relationship(
         "Release",
+    )
+
+    meta_campaign_record_id = Column(
+        Integer,
+        ForeignKey("meta_campaigns.id"),
+        nullable=True,
+        unique=True,
+    )
+
+    meta_campaign_record = relationship(
+        "MetaCampaign",
     )
 
     meta_audience = relationship(

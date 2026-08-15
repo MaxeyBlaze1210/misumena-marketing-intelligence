@@ -1,0 +1,188 @@
+{% extends "workspace/base.html" %}
+
+{% block content %}
+
+<article class="workspace-card promo-email-review">
+
+    <p class="eyebrow">Email Promotion</p>
+    <h2>Review send</h2>
+
+    <p>
+        Nothing is sent until you press the final button below.
+    </p>
+
+    <div class="promo-review-summary">
+
+        <div>
+            <span>Recipients</span>
+            <strong>{{ recipients|length }}</strong>
+        </div>
+
+        {% for type_name, count in type_counts.items() %}
+        <div>
+            <span>{{ type_name.replace("_", " ").title() }}</span>
+            <strong>{{ count }}</strong>
+        </div>
+        {% endfor %}
+
+    </div>
+
+    <section class="promo-email-section">
+        <h4>Subject</h4>
+        <p><strong>{{ campaign.subject }}</strong></p>
+    </section>
+
+    <section class="promo-email-section">
+        <h4>Email preview</h4>
+
+        {% if recipients %}
+
+            {% set preview_contact = recipients[0].contact %}
+
+            {% set greeting_name =
+                preview_contact.greeting_name
+                or (
+                    (preview_contact.name or "").split()[0]
+                    if preview_contact.name
+                    else ""
+                )
+            %}
+
+            <p class="promo-email-help">
+                Previewing:
+                <strong>
+                    {{ preview_contact.name or preview_contact.email }}
+                </strong>.
+                Every recipient receives their own personalized greeting.
+            </p>
+
+            <div class="promo-email-preview">
+
+                <strong>
+                    {{ campaign.subject }}
+                </strong>
+
+                <div class="promo-preview-message">
+
+                    <p>
+                        {% if greeting_name %}
+                            Hello {{ greeting_name }},
+                        {% else %}
+                            Hello,
+                        {% endif %}
+                    </p>
+
+                    <div class="promo-preview-body">
+                        {{ campaign.body }}
+                    </div>
+
+                    <div class="promo-preview-links">
+                        {% if links.spotify %}
+                            <p><strong>Spotify</strong></p>
+                        {% endif %}
+
+                        {% if links.apple_music %}
+                            <p><strong>Apple Music</strong></p>
+                        {% endif %}
+
+                        {% if links.youtube %}
+                            <p><strong>YouTube</strong></p>
+                        {% endif %}
+
+                        {% if links.dropbox %}
+                            <p><strong>Promo / download</strong></p>
+                        {% endif %}
+                    </div>
+
+                </div>
+
+            </div>
+
+        {% else %}
+            <p>No recipients selected.</p>
+        {% endif %}
+    </section>
+
+    <section class="promo-email-section">
+        <h4>Release links</h4>
+
+        <div class="promo-link-list">
+            {% if links.spotify %}
+            <div>
+                <span>Spotify</span>
+                <span>✓</span>
+            </div>
+            {% endif %}
+
+            {% if links.apple_music %}
+            <div>
+                <span>Apple Music</span>
+                <span>✓</span>
+            </div>
+            {% endif %}
+
+            {% if links.youtube %}
+            <div>
+                <span>YouTube</span>
+                <span>✓</span>
+            </div>
+            {% endif %}
+
+            {% if links.dropbox %}
+            <div>
+                <span>Promo / download</span>
+                <span>✓</span>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="promo-email-section">
+        <details>
+            <summary>
+                Show {{ recipients|length }} recipients
+            </summary>
+
+            <ol>
+                {% for recipient in recipients %}
+                <li>
+                    {{ recipient.contact.name
+                       or recipient.contact.email }}
+                    — {{ recipient.contact.email }}
+                </li>
+                {% endfor %}
+            </ol>
+        </details>
+    </section>
+
+    <div class="promo-email-actions">
+
+        <a
+            href="/workspace/releases/{{ release.id }}/promotion"
+            class="secondary-button"
+        >
+            Back to draft
+        </a>
+
+        <form
+            method="post"
+            action="/workspace/releases/{{ release.id }}/promotion/email/send"
+            onsubmit="
+                return confirm(
+                    'Send {{ recipients|length }} individual promo emails?'
+                );
+            "
+        >
+            <button
+                type="submit"
+                class="primary-button"
+            >
+                Send {{ recipients|length }} individual emails
+            </button>
+        </form>
+
+    </div>
+
+</article>
+
+{% endblock %}

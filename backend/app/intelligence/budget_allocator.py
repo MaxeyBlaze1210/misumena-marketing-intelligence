@@ -4,121 +4,238 @@ from app.intelligence.rules import META_RULES
 
 
 @dataclass
-class BudgetCandidate:
+class AudienceCandidate:
     name: str
-    current_daily_budget: float
+    current_share: float
     impressions: int
     results: int
+    spend: float
     cost_per_result: float | None
-    action: str
+    active: bool = True
 
 
 class BudgetAllocator:
+
     def propose(
         self,
-        candidates: list[BudgetCandidate],
+        audiences: list[AudienceCandidate],
         total_daily_budget: float,
     ) -> dict:
+
         if total_daily_budget <= 0:
-            raise ValueError("Total daily budget must be greater than zero.")
+            raise ValueError(
+                "Total daily budget must be greater than zero."
+            )
 
         active = [
-            candidate
-            for candidate in candidates
-            if candidate.action != "pause_candidate"
-            and candidate.cost_per_result is not None
-            and candidate.results > 0
+            audience
+            for audience in audiences
+            if audience.active
         ]
 
         if not active:
             return {
                 "total_daily_budget": total_daily_budget,
                 "allocations": [],
-                "message": "No eligible creatives for budget allocation.",
+                "message": "No active audiences.",
             }
 
-        minimum_budget = META_RULES["min_daily_budget_per_adset"]
-        maximum_increase_pct = META_RULES[
-            "max_daily_budget_increase_pct"
+        minimum_share = META_RULES[
+            "min_audience_share"
         ]
 
-        required_minimum = minimum_budget * len(active)
+        maximum_share_change = META_RULES[
+            "max_audience_share_change"
+        ]
 
-        if required_minimum > total_daily_budget:
-            return {
-                "total_daily_budget": total_daily_budget,
-                "allocations": [],
-                "message": (
-                    "The total daily budget is too low to keep all "
-                    "eligible creatives active at the minimum budget."
-                ),
+        # -------------------------------------------------
+        # If CPR evidence is incomplete, stay close to equal
+        # allocation rather than inventing a winner.
+        # -------------------------------------------------
+
+        evidenced = [
+            audience
+            for audience in active
+            if (
+                audience.cost_per_result is not None
+                and audience.results > 0
+            )
+        ]
+
+        if len(evidenced) != len(active):
+            target_share = (
+                1.0 / len(active)
+            )
+
+            raw_shares = {
+                audience.name: target_share
+                for audience in active
             }
 
-        performance_pool = total_daily_budget - required_minimum
+            allocation_reason = (
+                "Insufficient CPR evidence across all active "
+                "audiences; using equal allocation."
+            )
 
-        weights = {
-            candidate.name: 1 / candidate.cost_per_result
-            for candidate in active
+        else:
+            weights = {
+                audience.name:
+                    1.0
+                    / audience.cost_per_result
+
+                for audience in active
+            }
+
+            total_weight = sum(
+                weights.values()
+            )
+
+            raw_shares = {
+                audience.name:
+                    weights[audience.name]
+                    / total_weight
+
+                for audience in active
+            }
+
+            allocation_reason = (
+                "Allocated using inverse CPR while preserving "
+                "minimum audience share and limiting day-to-day "
+                "share changes."
+            )
+
+        # -------------------------------------------------
+        # Apply minimum share
+        # -------------------------------------------------
+
+        adjusted = {
+            audience.name:
+                max(
+                    raw_shares[audience.name],
+                    minimum_share,
+                )
+
+            for audience in active
         }
 
-        total_weight = sum(weights.values())
+        total_adjusted = sum(
+            adjusted.values()
+        )
+
+        adjusted = {
+            name:
+                share / total_adjusted
+
+            for name, share
+            in adjusted.items()
+        }
+
+        # -------------------------------------------------
+        # Limit daily movement from current share
+        # -------------------------------------------------
+
+        capped = {}
+
+        for audience in active:
+
+            current_share = (
+                audience.current_share
+                if audience.current_share > 0
+                else 1.0 / len(active)
+            )
+
+            lower = max(
+                0.0,
+                current_share
+                - maximum_share_change,
+            )
+
+            upper = min(
+                1.0,
+                current_share
+                + maximum_share_change,
+            )
+
+            capped[audience.name] = min(
+                max(
+                    adjusted[audience.name],
+                    lower,
+                ),
+                upper,
+            )
+
+        total_capped = sum(
+            capped.values()
+        )
+
+        final_shares = {
+            name:
+                share / total_capped
+
+            for name, share
+            in capped.items()
+        }
 
         allocations = []
 
-        for candidate in active:
-            weighted_share = (
-                weights[candidate.name] / total_weight
-            )
+        for audience in active:
 
-            proposed_budget = (
-                minimum_budget
-                + performance_pool * weighted_share
-            )
-
-            maximum_allowed = (
-                candidate.current_daily_budget
-                * (1 + maximum_increase_pct / 100)
-            )
-
-            proposed_budget = min(
-                proposed_budget,
-                maximum_allowed,
-            )
+            share = final_shares[
+                audience.name
+            ]
 
             allocations.append(
                 {
-                    "creative": candidate.name,
-                    "current_daily_budget": round(
-                        candidate.current_daily_budget,
-                        2,
-                    ),
-                    "proposed_daily_budget": round(
-                        proposed_budget,
-                        2,
-                    ),
-                    "cost_per_result": round(
-                        candidate.cost_per_result,
-                        4,
-                    ),
-                    "reason": (
-                        "Allocated according to inverse cost per result, "
-                        "subject to minimum-budget and maximum-increase rules."
-                    ),
+                    "audience":
+                        audience.name,
+
+                    "share":
+                        round(
+                            share,
+                            4,
+                        ),
+
+                    "proposed_daily_budget":
+                        round(
+                            total_daily_budget
+                            * share,
+                            2,
+                        ),
+
+                    "cost_per_result":
+                        (
+                            round(
+                                audience.cost_per_result,
+                                4,
+                            )
+                            if audience.cost_per_result
+                            is not None
+                            else None
+                        ),
+
+                    "results":
+                        audience.results,
+
+                    "impressions":
+                        audience.impressions,
+
+                    "reason":
+                        allocation_reason,
                 }
             )
 
-        allocated_total = sum(
-            item["proposed_daily_budget"]
-            for item in allocations
-        )
-
         return {
-            "total_daily_budget": total_daily_budget,
-            "proposed_total": round(allocated_total, 2),
-            "unallocated_budget": round(
-                total_daily_budget - allocated_total,
-                2,
-            ),
-            "allocations": allocations,
-            "advisory_only": not META_RULES["allow_budget_changes"],
+            "total_daily_budget":
+                round(
+                    total_daily_budget,
+                    2,
+                ),
+
+            "allocations":
+                allocations,
+
+            "advisory_only":
+                not META_RULES[
+                    "allow_live_meta_changes"
+                ],
         }

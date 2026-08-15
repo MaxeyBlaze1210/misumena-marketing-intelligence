@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Research — MMI Workspace</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/workspace.css?v=research1"
+    >
+</head>
+
+<body>
+
+<main class="workspace">
+
+    <nav class="top-workspace-tabs">
+
+        <a href="/workspace/releases">
+            Releases
+        </a>
+
+        <a href="/workspace/playlists">
+            Playlists
+        </a>
+
+        <a
+            class="active"
+            href="/workspace/research"
+        >
+            Research
+        </a>
+
+    </nav>
+
+
+    <header class="workspace-header">
+
+        <div>
+            <p class="eyebrow">
+                Misumena Marketing Intelligence
+            </p>
+
+            <h1>Research</h1>
+        </div>
+
+    </header>
+
+
+    <article class="workspace-card">
+
+        <h2>Historical Meta audience evidence</h2>
+
+        <p style="
+            color:#666;
+            line-height:1.5;
+        ">
+            Historical targeting recipes imported from
+            Meta. These are observational campaign results
+            and provide reusable evidence across releases.
+        </p>
+
+
+        {% if historical_evidence %}
+
+            <div style="
+                display:grid;
+                gap:12px;
+                margin-top:18px;
+            ">
+
+                {% for recipe in historical_evidence %}
+
+                    <details style="
+                        border:1px solid #e3e3e3;
+                        border-radius:10px;
+                        padding:14px 16px;
+                        background:#fafafa;
+                    ">
+
+                        <summary style="
+                            cursor:pointer;
+                        ">
+
+                            <strong>
+                                {{ recipe.display_name }}
+                            </strong>
+
+                            <span style="
+                                margin-left:10px;
+                                color:#666;
+                            ">
+
+                                {% if recipe.aggregate_cpr is not none %}
+                                    €{{ "%.3f"|format(recipe.aggregate_cpr) }}
+                                    CPR
+                                {% else %}
+                                    CPR —
+                                {% endif %}
+
+                                ·
+
+                                {{ "%.0f"|format(recipe.total_results) }}
+                                results
+
+                                ·
+
+                                €{{ "%.2f"|format(recipe.total_spend) }}
+
+                            </span>
+
+                        </summary>
+
+
+                        <div style="
+                            margin-top:14px;
+                            display:grid;
+                            gap:8px;
+                        ">
+
+                            <div>
+                                <strong>Ad sets:</strong>
+                                {{ recipe.adset_count }}
+                            </div>
+
+                            <div>
+                                <strong>Interests:</strong>
+                                {{ recipe.interest_count }}
+                            </div>
+
+                            {% if recipe.employer_count %}
+                                <div>
+                                    <strong>Employers:</strong>
+                                    {{ recipe.employer_count }}
+                                </div>
+                            {% endif %}
+
+                            {% if recipe.position_count %}
+                                <div>
+                                    <strong>Job titles:</strong>
+                                    {{ recipe.position_count }}
+                                </div>
+                            {% endif %}
+
+                            <div>
+                                <strong>Age:</strong>
+                                {{ recipe.age_min }}–{{ recipe.age_max }}
+                            </div>
+
+                            <div>
+                                <strong>Countries:</strong>
+                                {{ recipe.countries | join(", ") }}
+                            </div>
+
+                            <div>
+                                <strong>Advantage Audience:</strong>
+
+                                {% if recipe.advantage_audience %}
+                                    On
+                                {% elif recipe.advantage_audience is sameas false %}
+                                    Off
+                                {% else %}
+                                    Unknown
+                                {% endif %}
+                            </div>
+
+
+                            {% if recipe.interests %}
+
+                                <div style="margin-top:8px;">
+
+                                    <strong>
+                                        Targeting recipe
+                                    </strong>
+
+                                    <div style="
+                                        margin-top:6px;
+                                        line-height:1.6;
+                                        color:#555;
+                                    ">
+                                        {{ recipe.interests | join(" · ") }}
+                                    </div>
+
+                                </div>
+
+                            {% endif %}
+
+
+                            {% if recipe.employers %}
+
+                                <div style="margin-top:8px;">
+
+                                    <strong>
+                                        Employers
+                                    </strong>
+
+                                    <div style="
+                                        margin-top:6px;
+                                        color:#555;
+                                    ">
+                                        {{ recipe.employers | join(" · ") }}
+                                    </div>
+
+                                </div>
+
+                            {% endif %}
+
+
+                            {% if recipe.positions %}
+
+                                <div style="margin-top:8px;">
+
+                                    <strong>
+                                        Job titles
+                                    </strong>
+
+                                    <div style="
+                                        margin-top:6px;
+                                        color:#555;
+                                    ">
+                                        {{ recipe.positions | join(" · ") }}
+                                    </div>
+
+                                </div>
+
+                            {% endif %}
+
+
+                            {% if recipe.adset_count > 1 %}
+
+                                <div style="margin-top:10px;">
+
+                                    <strong>
+                                        Individual observations
+                                    </strong>
+
+                                    <ul>
+
+                                        {% for adset in recipe.adsets %}
+
+                                            <li>
+                                                {{ adset.name }}
+
+                                                {% if adset.cost_per_result is not none %}
+                                                    —
+                                                    €{{ "%.3f"|format(adset.cost_per_result) }}
+                                                    CPR
+                                                {% endif %}
+
+                                                {% if adset.results is not none %}
+                                                    —
+                                                    {{ "%.0f"|format(adset.results) }}
+                                                    results
+                                                {% endif %}
+                                            </li>
+
+                                        {% endfor %}
+
+                                    </ul>
+
+                                </div>
+
+                            {% endif %}
+
+                        </div>
+
+                    </details>
+
+                {% endfor %}
+
+            </div>
+
+        {% else %}
+
+            <p>
+                No historical Meta audience evidence
+                imported yet.
+            </p>
+
+        {% endif %}
+
+    </article>
+
+    {% include "workspace/partials/research_youtube.html" %}
+
+    {% include "workspace/partials/research_bandcamp.html" %}
+
+</main>
+
+</body>
+</html>

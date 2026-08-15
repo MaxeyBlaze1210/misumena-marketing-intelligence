@@ -4,63 +4,372 @@
 
 Promotion
 
-<div class="workspace-card-grid">
+{% include "workspace/partials/landing_page.html" %}
 
-    {% include "workspace/partials/landing_page.html" %}
+<article class="workspace-card">
+    <h3>YouTube Discovery</h3>
+    <p>
+        Metadata, playlists, thumbnails and recommendation optimization will live here.
+    </p>
+</article>
 
-    {% include "workspace/partials/meta_audience.html" %}
+<article class="workspace-card promo-email-card">
 
-    <article class="workspace-card">
-        <h3>YouTube Discovery</h3>
-        <p>
-            Metadata, playlists, thumbnails and recommendation optimization will live here.
-        </p>
-    </article>
+    <div class="promo-email-heading">
+        <div>
+            <p class="eyebrow">
+                Direct promotion
+            </p>
+            <h3>Email Promotion</h3>
+        </div>
 
-    <article class="workspace-card">
-        <h3>Bandcamp</h3>
-        <p>
-            Release preparation will live here.
-        </p>
-    </article>
+        {% if promo_email_status == "saved" %}
+            <span class="promo-email-saved">
+                ✓ Draft saved
+            </span>
+        {% endif %}
+    </div>
 
-    <article class="workspace-card">
-        <h3>Email Promotion</h3>
-        <p>
-            Radio, DJ and newsletter tools will live here.
-        </p>
-    </article>
+    <form
+        method="post"
+        action="/workspace/releases/{{ release.id }}/promotion/email"
+        class="promo-email-form"
+    >
 
-    {% include "workspace/partials/campaign_builder.html" %}
+        <section class="promo-email-section">
 
-    <article class="workspace-card">
-        <h3>Trusted Interests</h3>
+            <h4>Recipients</h4>
 
-        {% if trusted_interests %}
-            <p>
-                {{ trusted_interests | length }}
-                trusted interests
+            <p class="promo-email-help">
+                Select the groups that should receive this campaign.
+                Emails will later be sent individually.
             </p>
 
-            <ul class="interest-list">
-                {% for link in trusted_interests %}
-                    <li>
-                        ✓ {{ link.meta_interest.name }}
-                    </li>
+            <div class="promo-recipient-types">
+
+                {% set recipient_types = [
+                    ("radio", "Radio"),
+                    ("dj", "DJs"),
+                    ("blog", "Blogs / Press"),
+                    ("spotify_curator", "Spotify curators"),
+                    ("label", "Labels"),
+                    ("other", "Other")
+                ] %}
+
+                {% for value, label in recipient_types %}
+
+                <label class="promo-recipient-option">
+                    <input
+                        type="checkbox"
+                        name="recipient_types"
+                        value="{{ value }}"
+                        {% if value in promo_selected_types %}
+                            checked
+                        {% endif %}
+                    >
+
+                    <span>
+                        <strong>{{ label }}</strong>
+                        <small>
+                            {{ promo_contact_counts.get(value, 0) }}
+                            contacts
+                        </small>
+                    </span>
+                </label>
+
                 {% endfor %}
-            </ul>
-        {% else %}
-            <p>No trusted interests configured yet.</p>
-        {% endif %}
-    </article>
 
-    <article class="workspace-card">
-        <h3>Experimental Interest</h3>
-        <p>
-            No experimental interest selected.
-        </p>
-    </article>
+            </div>
 
-</div>
+        </section>
+
+        <section class="promo-email-section">
+
+            <h4>Subject</h4>
+
+            <input
+                class="promo-email-subject"
+                id="promo-subject"
+                type="text"
+                name="subject"
+                value="{{ promo_campaign.subject if promo_campaign and promo_campaign.subject else '' }}"
+                placeholder="{{ release.artist }} — {{ release.title }}"
+            >
+
+        </section>
+
+        <section class="promo-email-section">
+
+            <h4>Message</h4>
+
+            <p class="promo-email-help">
+                The personalized greeting and release links are
+                added automatically.
+            </p>
+
+            <textarea
+                class="promo-email-body"
+                id="promo-body"
+                name="body"
+                rows="11"
+                placeholder="A short personal introduction to the release..."
+            >{{ promo_campaign.body if promo_campaign and promo_campaign.body else '' }}</textarea>
+
+        </section>
+
+        <section class="promo-email-section">
+
+            <h4>Automatic release links</h4>
+
+            <div class="promo-link-list">
+
+                <div>
+                    <span>Spotify</span>
+                    {% if promo_release_links.spotify %}
+                        <a
+                            href="{{ promo_release_links.spotify }}"
+                            target="_blank"
+                        >
+                            Available
+                        </a>
+                    {% else %}
+                        <span class="promo-link-missing">
+                            Missing
+                        </span>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <span>Apple Music</span>
+                    {% if promo_release_links.apple_music %}
+                        <a
+                            href="{{ promo_release_links.apple_music }}"
+                            target="_blank"
+                        >
+                            Available
+                        </a>
+                    {% else %}
+                        <span class="promo-link-missing">
+                            Missing
+                        </span>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <span>YouTube</span>
+                    {% if promo_release_links.youtube %}
+                        <a
+                            href="{{ promo_release_links.youtube }}"
+                            target="_blank"
+                        >
+                            Available
+                        </a>
+                    {% else %}
+                        <span class="promo-link-missing">
+                            Missing
+                        </span>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <span>Dropbox promo folder</span>
+                    {% if promo_release_links.dropbox %}
+                        <a
+                            href="{{ promo_release_links.dropbox }}"
+                            target="_blank"
+                        >
+                            Available
+                        </a>
+                    {% else %}
+                        <span class="promo-link-missing">
+                            Missing
+                        </span>
+                    {% endif %}
+                </div>
+
+            </div>
+
+        </section>
+
+        <section class="promo-email-section">
+
+            <h4>Preview</h4>
+
+            <label class="promo-preview-contact-label">
+                Preview as
+                <select id="promo-preview-contact">
+                    <option
+                        value=""
+                        data-greeting=""
+                    >
+                        Generic recipient
+                    </option>
+
+                    {% for contact in promo_contacts %}
+                    <option
+                        value="{{ contact.id }}"
+                        data-greeting="{{ contact.greeting_name or ((contact.name or '').split()[0] if contact.name else '') }}"
+                    >
+                        {{ contact.name or contact.email }}
+                        — {{ contact.email }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <div class="promo-email-preview">
+
+                <strong id="promo-preview-subject">
+                    {{ promo_campaign.subject if promo_campaign and promo_campaign.subject else release.artist ~ " — " ~ release.title }}
+                </strong>
+
+                <div class="promo-preview-message">
+
+                    <p id="promo-preview-greeting">
+                        Hello,
+                    </p>
+
+                    <div
+                        id="promo-preview-body"
+                        class="promo-preview-body"
+                    >{{ promo_campaign.body if promo_campaign and promo_campaign.body else '' }}</div>
+
+                    <div class="promo-preview-links">
+
+                        {% if promo_release_links.spotify %}
+                        <p>
+                            <a
+                                href="{{ promo_release_links.spotify }}"
+                                target="_blank"
+                            >
+                                Spotify
+                            </a>
+                        </p>
+                        {% endif %}
+
+                        {% if promo_release_links.apple_music %}
+                        <p>
+                            <a
+                                href="{{ promo_release_links.apple_music }}"
+                                target="_blank"
+                            >
+                                Apple Music
+                            </a>
+                        </p>
+                        {% endif %}
+
+                        {% if promo_release_links.youtube %}
+                        <p>
+                            <a
+                                href="{{ promo_release_links.youtube }}"
+                                target="_blank"
+                            >
+                                YouTube
+                            </a>
+                        </p>
+                        {% endif %}
+
+                        {% if promo_release_links.dropbox %}
+                        <p>
+                            <a
+                                href="{{ promo_release_links.dropbox }}"
+                                target="_blank"
+                            >
+                                Promo / download
+                            </a>
+                        </p>
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <div class="promo-email-actions">
+            <button
+                type="submit"
+                name="action"
+                value="save"
+                class="primary-button"
+            >
+                Save draft
+            </button>
+
+            {% if promo_campaign %}
+                <a
+                    href="/workspace/releases/{{ release.id }}/promotion/email/review"
+                    class="secondary-button"
+                >
+                    Review send
+                </a>
+            {% else %}
+                <span class="promo-send-disabled">
+                    Save draft before sending
+                </span>
+            {% endif %}
+        </div>
+
+    </form>
+
+</article>
+
+<script>
+(function () {
+    const subject = document.getElementById("promo-subject");
+    const body = document.getElementById("promo-body");
+    const contact = document.getElementById("promo-preview-contact");
+
+    const previewSubject =
+        document.getElementById("promo-preview-subject");
+
+    const previewGreeting =
+        document.getElementById("promo-preview-greeting");
+
+    const previewBody =
+        document.getElementById("promo-preview-body");
+
+    function updatePromoPreview() {
+        const selected =
+            contact.options[contact.selectedIndex];
+
+        const greeting =
+            selected.dataset.greeting || "";
+
+        previewSubject.textContent =
+            subject.value.trim()
+            || "{{ release.artist }} — {{ release.title }}";
+
+        previewGreeting.textContent =
+            greeting
+            ? `Hello ${greeting},`
+            : "Hello,";
+
+        previewBody.textContent =
+            body.value;
+    }
+
+    subject.addEventListener(
+        "input",
+        updatePromoPreview
+    );
+
+    body.addEventListener(
+        "input",
+        updatePromoPreview
+    );
+
+    contact.addEventListener(
+        "change",
+        updatePromoPreview
+    );
+
+    updatePromoPreview();
+})();
+</script>
+
+{% include "workspace/partials/campaign_builder.html" %}
 
 {% endblock %}

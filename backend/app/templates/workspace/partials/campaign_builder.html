@@ -1,30 +1,530 @@
-<article class="workspace-card">
+<article class="workspace-card campaign-builder-card">
     <h3>Meta Campaign Builder</h3>
 
     {% if campaign_plan %}
+
         <dl class="campaign-plan-details">
 
             <div>
                 <dt>Meta audience</dt>
                 <dd>
-                    {% if campaign_plan.meta_audience %}
-                        {{ campaign_plan.meta_audience.name }}
-                    {% else %}
-                        Not selected
-                    {% endif %}
+                    <form
+                        method="post"
+                        class="campaign-interest-form"
+                        onsubmit="
+                            this.action =
+                            '/workspace/releases/{{ release.id }}/promotion/meta-audience/'
+                            + this.meta_audience_id.value;
+                        "
+                    >
+                        <select
+                            name="meta_audience_id"
+                            onchange="this.form.requestSubmit()"
+                        >
+                            {% for audience in meta_audiences %}
+                                <option
+                                    value="{{ audience.id }}"
+                                    {% if campaign_plan.meta_audience_id == audience.id %}
+                                        selected
+                                    {% endif %}
+                                >
+                                    {{ audience.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </form>
                 </dd>
             </div>
 
-<div>
-    <dt>Campaign type</dt>
-    <dd>
-        {% if campaign_plan.campaign_type == "broad" %}
-            Broad
-        {% else %}
-            Interest
-        {% endif %}
-    </dd>
-</div>
+            <div>
+                <dt>Base platform</dt>
+                <dd>
+                    <form
+                        method="post"
+                        class="campaign-interest-form"
+                        onsubmit="
+                            this.action =
+                            '/workspace/releases/{{ release.id }}/promotion/base-platform/'
+                            + this.base_platform_id.value;
+                        "
+                    >
+                        <select
+                            name="base_platform_id"
+                            onchange="this.form.requestSubmit()"
+                        >
+                            {% for interest in base_platform_options %}
+                                <option
+                                    value="{{ interest.id }}"
+                                    {% if base_platform_interest and base_platform_interest.id == interest.id %}
+                                        selected
+                                    {% endif %}
+                                >
+                                    {% if interest.id == 138 %}
+                                        Spotify
+                                    {% elif interest.id == 14 %}
+                                        Apple Music
+                                    {% else %}
+                                        {{ interest.name }}
+                                    {% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                </dd>
+            </div>
+
+            <div>
+                <dt>Campaign type</dt>
+                <dd>Interest</dd>
+            </div>
+
+        </dl>
+
+
+        <div class="campaigns-block">
+
+            <div class="campaigns-label">
+                Campaigns
+            </div>
+
+            {% if campaign_variants %}
+
+                <div class="campaign-role-list">
+
+                    {% for variant in campaign_variants %}
+
+                        <div class="campaign-role-card">
+
+                            <div class="campaign-role-label">
+                                {% if variant.role == "control" %}
+                                    CONTROL
+                                {% elif variant.role == "comparator_1" %}
+                                    COMPARATOR 1
+                                {% elif variant.role == "comparator_2" %}
+                                    COMPARATOR 2
+                                {% endif %}
+                            </div>
+
+                            {% if variant.role in ["comparator_1", "comparator_2"] %}
+
+                                <form
+                                    method="post"
+                                    class="campaign-interest-form"
+                                    onsubmit="
+                                        this.action =
+                                        '/workspace/releases/{{ release.id }}/promotion/campaign-comparator/{{ variant.role }}/'
+                                        + this.meta_interest_id.value;
+                                    "
+                                >
+                                    <select
+                                        name="meta_interest_id"
+                                        onchange="this.form.requestSubmit()"
+                                    >
+
+                                        <option value="">
+                                            Select comparator interest
+                                        </option>
+
+                                        <option
+                                            value="recipe:eco_conscious_african_music"
+                                            {% if variant.name == "Eco-conscious African Music" %}
+                                                selected
+                                            {% endif %}
+                                        >
+                                            Eco-conscious African Music
+                                            — Misumena Identity
+                                        </option>
+
+                                        {% for interest in candidate_interest_options %}
+                                            <option
+                                                value="{{ interest.meta_interest_id }}"
+                                                {% if interest.name == variant.name %}
+                                                    selected
+                                                {% endif %}
+                                            >
+                                                {{ interest.name }}
+                                                —
+                                                {{ "%.1f"|format(interest.audience_size / 1000000) }}M
+                                                —
+                                                relevance {{ interest.relevance_score }}
+                                            </option>
+                                        {% endfor %}
+
+                                    </select>
+                                </form>
+
+                            {% else %}
+
+                                <strong>
+                                    {{ variant.name }}
+                                </strong>
+
+                            {% endif %}
+
+                            {% if variant.interests %}
+
+                                <div class="campaign-variant-recipe">
+                                    {% for link in variant.interests %}
+                                        {{ link.meta_interest.name }}{% if not loop.last %} + {% endif %}
+                                    {% endfor %}
+                                </div>
+
+                            {% else %}
+
+                                <div class="campaign-variant-recipe">
+                                    No interests configured
+                                </div>
+
+                            {% endif %}
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            {% else %}
+
+                <p>No campaigns configured.</p>
+
+            {% endif %}
+
+        </div>
+
+
+        <div class="campaign-creatives-block">
+
+            <div class="campaigns-label">
+                Ad delivery
+            </div>
+
+            <form
+                method="post"
+                action="/workspace/releases/{{ release.id }}/promotion/ad-settings"
+                class="campaign-setting-form"
+                style="margin-bottom:24px;"
+            >
+
+                <div style="
+                    display:grid;
+                    gap:12px;
+                    max-width:720px;
+                ">
+
+                    <label>
+                        Destination URL
+
+                        <input
+                            type="url"
+                            name="destination_url"
+                            value="{{ campaign_plan.destination_url or '' }}"
+                            placeholder="https://..."
+                            required
+                            style="width:100%;"
+                        >
+                    </label>
+
+                    <label>
+                        Call to action
+
+                        <select
+                            name="call_to_action"
+                        >
+                            <option
+                                value="LISTEN_NOW"
+                                {% if campaign_plan.call_to_action == "LISTEN_NOW" %}
+                                    selected
+                                {% endif %}
+                            >
+                                Listen Now
+                            </option>
+                        </select>
+                    </label>
+
+                    <div>
+                        <button type="submit">
+                            Save ad settings
+                        </button>
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+
+
+        <div class="campaign-creatives-block">
+
+            <div class="campaigns-label">
+                Meta campaign build
+            </div>
+
+            {% if meta_build_readiness %}
+
+                <div style="
+                    display:grid;
+                    gap:8px;
+                    max-width:720px;
+                    margin-bottom:16px;
+                ">
+
+                    <div>
+                        Selected creatives:
+                        <strong>
+                            {{ meta_build_readiness.selected }}
+                        </strong>
+                    </div>
+
+                    <div>
+                        Primary text:
+                        <strong>
+                            {{ meta_build_readiness.primary_text_ready }}
+                            /
+                            {{ meta_build_readiness.selected }}
+                        </strong>
+                    </div>
+
+                    <div>
+                        Meta videos:
+                        <strong>
+                            {{ meta_build_readiness.videos_ready }}
+                            /
+                            {{ meta_build_readiness.selected }}
+                        </strong>
+                    </div>
+
+                    <div>
+                        Ad creatives:
+                        <strong>
+                            {{ meta_build_readiness.creatives_ready }}
+                            /
+                            {{ meta_build_readiness.selected }}
+                        </strong>
+                    </div>
+
+                    <div>
+                        Ad sets:
+                        <strong>
+                            {{ meta_build_readiness.ad_sets_ready }}
+                            /
+                            {{ meta_build_readiness.campaign_cells }}
+                        </strong>
+                    </div>
+
+                    <div>
+                        Ads:
+                        <strong>
+                            {{ meta_build_readiness.ads_ready }}
+                            /
+                            {{ meta_build_readiness.campaign_cells }}
+                        </strong>
+                    </div>
+
+                </div>
+
+                {% if meta_build_status %}
+
+                    <div style="
+                        margin-bottom:16px;
+                        padding:10px;
+                        border:1px solid #ddd;
+                        border-radius:8px;
+                    ">
+                        <strong>
+                            {{ meta_build_message }}
+                        </strong>
+                    </div>
+
+                {% endif %}
+
+                {% if meta_build_readiness.missing_copy %}
+
+                    <div style="
+                        margin-bottom:16px;
+                    ">
+                        Missing primary text for
+                        <strong>
+                            {{ meta_build_readiness.missing_copy | length }}
+                        </strong>
+                        selected creative(s).
+                    </div>
+
+                {% endif %}
+
+                <form
+                    method="post"
+                    action="/workspace/releases/{{ release.id }}/promotion/meta-build"
+                >
+                    <button
+                        type="submit"
+                        {% if not meta_build_readiness.can_build %}
+                            disabled
+                        {% endif %}
+                    >
+                        Build / reconcile ads in Meta
+                    </button>
+                </form>
+
+                <p style="
+                    margin-top:10px;
+                    font-size:13px;
+                    color:#777;
+                ">
+                    New ads are created paused.
+                    This action does not start spending.
+                </p>
+
+            {% endif %}
+
+        </div>
+
+
+        <div class="campaign-creatives-block">
+
+            <div class="campaigns-label">
+                Creatives
+            </div>
+
+            {% if short_form_creatives %}
+
+                <div class="campaign-creative-actions">
+
+                    <form
+                        method="post"
+                        action="/workspace/releases/{{ release.id }}/promotion/creatives/select-all"
+                    >
+                        <button type="submit">
+                            Select all
+                        </button>
+                    </form>
+
+                </div>
+
+                <div class="campaign-creative-list">
+
+                    {% for asset in short_form_creatives %}
+
+                        <div
+                            class="campaign-creative-item"
+                            style="
+                                display:block;
+                                margin-bottom:14px;
+                            "
+                        >
+
+                            <form
+                                method="post"
+                                action="/workspace/releases/{{ release.id }}/promotion/creative/{{ asset.id }}/toggle"
+                            >
+                                <label>
+
+                                    <input
+                                        type="checkbox"
+                                        {% if asset.id in selected_creative_ids %}
+                                            checked
+                                        {% endif %}
+                                        onchange="this.form.requestSubmit()"
+                                    >
+
+                                    <span>
+                                        {{ asset.file_name or asset.name }}
+                                    </span>
+
+                                </label>
+                            </form>
+
+                            {% if asset.id in selected_creative_ids %}
+
+                                {% set creative_link =
+                                    selected_creative_links.get(asset.id) %}
+
+                                <form
+                                    method="post"
+                                    action="/workspace/releases/{{ release.id }}/promotion/creative/{{ asset.id }}/copy"
+                                    style="
+                                        margin-top:10px;
+                                        padding-left:24px;
+                                    "
+                                >
+
+                                    <label
+                                        style="
+                                            display:block;
+                                            font-size:13px;
+                                        "
+                                    >
+                                        Primary text
+
+                                        <textarea
+                                            name="primary_text"
+                                            rows="3"
+                                            placeholder="Write the primary ad text for this creative..."
+                                            style="
+                                                display:block;
+                                                width:100%;
+                                                max-width:720px;
+                                                margin-top:5px;
+                                            "
+                                        >{{ creative_link.primary_text or "" }}</textarea>
+                                    </label>
+
+                                    <button
+                                        type="submit"
+                                        style="margin-top:6px;"
+                                    >
+                                        Save copy
+                                    </button>
+
+                                </form>
+
+                            {% endif %}
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+
+                <div class="experiment-summary">
+
+                    <strong>
+                        {{ selected_creative_count }}
+                        creatives selected
+                    </strong>
+
+                    <div>
+                        Every selected creative runs in every campaign arm.
+                    </div>
+
+                    <div>
+                        {{ campaign_arm_count }}
+                        targeting arms
+                        ×
+                        {{ selected_creative_count }}
+                        creatives
+                        =
+                        <strong>
+                            {{ total_ad_set_count }}
+                            ad sets
+                        </strong>
+                    </div>
+
+                </div>
+
+            {% else %}
+
+                <p>
+                    No short-form creatives synced yet.
+                </p>
+
+            {% endif %}
+
+        </div>
+
+
+        <dl class="campaign-plan-details">
 
             <div>
                 <dt>Objective</dt>
@@ -41,72 +541,191 @@
                 <dd>{{ campaign_plan.conversion_event }}</dd>
             </div>
 
-<div>
-    <dt>Countries</dt>
-    <dd>
-        {% if selected_country_preset %}
+            <div>
+                <dt>Countries</dt>
+                <dd>
 
-            <details class="country-details">
-                <summary>
-                    {{ selected_country_preset.name }}
-                    ({{ selected_country_count }} countries)
-                </summary>
+                    {% if selected_country_preset %}
 
-                {% if selected_countries %}
-                    <ul class="country-list">
-                        {% for country in selected_countries %}
-                            <li>{{ country.name }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-            </details>
+                        <details class="country-details">
 
-        {% else %}
-            Not selected
-        {% endif %}
-    </dd>
-</div>
+                            <summary>
+                                {{ selected_country_preset.name }}
+                                ({{ selected_country_count }} countries)
+                            </summary>
+
+                            {% if selected_countries %}
+
+                                <ul class="country-list">
+
+                                    {% for country in selected_countries %}
+                                        <li>{{ country.name }}</li>
+                                    {% endfor %}
+
+                                </ul>
+
+                            {% endif %}
+
+                        </details>
+
+                    {% else %}
+
+                        Not selected
+
+                    {% endif %}
+
+                </dd>
+            </div>
+
 
             <div>
                 <dt>Age</dt>
                 <dd>
-                    {{ campaign_plan.age_min }}–{{ campaign_plan.age_max }}
+
+                    <form
+                        method="post"
+                        action="/workspace/releases/{{ release.id }}/promotion/age"
+                        class="campaign-setting-form"
+                    >
+
+                        <div class="campaign-setting-row">
+
+                            <label>
+                                Min
+
+                                <input
+                                    type="number"
+                                    name="age_min"
+                                    min="18"
+                                    max="65"
+                                    value="{{ campaign_plan.age_min }}"
+                                    required
+                                >
+                            </label>
+
+                            <label>
+                                Max
+
+                                <input
+                                    type="number"
+                                    name="age_max"
+                                    min="18"
+                                    max="65"
+                                    value="{{ campaign_plan.age_max }}"
+                                    required
+                                >
+                            </label>
+
+                            <button type="submit">
+                                Save
+                            </button>
+
+                        </div>
+
+                    </form>
+
                 </dd>
             </div>
+
 
             <div>
-                <dt>Campaign budget</dt>
+                <dt>Total campaign budget</dt>
                 <dd>
-                    {% if campaign_plan.daily_budget %}
-                        €{{ "%.0f"|format(campaign_plan.daily_budget) }}
-                    {% else %}
-                        Not selected
-                    {% endif %}
+
+                    <form
+                        method="post"
+                        action="/workspace/releases/{{ release.id }}/promotion/budget"
+                        class="campaign-setting-form"
+                    >
+
+                        <div class="campaign-setting-row">
+
+                            <label>
+                                €
+
+                                <input
+                                    type="number"
+                                    name="total_budget"
+                                    min="1"
+                                    step="0.01"
+                                    value="{% if campaign_plan.total_budget %}{{ campaign_plan.total_budget }}{% endif %}"
+                                    placeholder="e.g. 300"
+                                    required
+                                >
+                            </label>
+
+                            <button type="submit">
+                                Save
+                            </button>
+
+                        </div>
+
+                    </form>
+
                 </dd>
             </div>
 
-<div>
-    <dt>Schedule</dt>
-    <dd>
-        {% if campaign_plan.start_date and campaign_plan.end_date %}
-            {{ campaign_plan.start_date }}
-            →
-            {{ campaign_plan.end_date }}
-        {% elif campaign_plan.start_date %}
-            Starts {{ campaign_plan.start_date }}
-        {% else %}
-            Not selected
-        {% endif %}
-    </dd>
-</div>
+
+            <div>
+                <dt>Schedule</dt>
+                <dd>
+
+                    <form
+                        method="post"
+                        action="/workspace/releases/{{ release.id }}/promotion/schedule"
+                        class="campaign-setting-form"
+                    >
+
+                        <div class="campaign-setting-row">
+
+                            <label>
+                                Start
+
+                                <input
+                                    type="date"
+                                    name="start_date"
+                                    value="{% if campaign_plan.start_date %}{{ campaign_plan.start_date.isoformat() }}{% endif %}"
+                                >
+                            </label>
+
+                            <label>
+                                End
+
+                                <input
+                                    type="date"
+                                    name="end_date"
+                                    value="{% if campaign_plan.end_date %}{{ campaign_plan.end_date.isoformat() }}{% endif %}"
+                                >
+                            </label>
+
+                            <button type="submit">
+                                Save
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </dd>
+            </div>
+
 
             <div>
                 <dt>Status</dt>
-                <dd>{{ campaign_plan.status | title }}</dd>
+                <dd>
+                    {{ campaign_plan.status | title }}
+                </dd>
             </div>
 
         </dl>
+
+
     {% else %}
-        <p>No campaign plan created yet.</p>
+
+        <p>
+            No campaign plan created yet.
+        </p>
+
     {% endif %}
+
 </article>

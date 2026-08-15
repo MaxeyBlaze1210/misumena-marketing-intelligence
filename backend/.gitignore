@@ -1,4 +1,10 @@
 secrets/
 *.db
 __pycache__/
+.venv/secrets/gmail_client_secret.json
+secrets/gmail_token.json
+.env
 .venv/
+.DS_Store
+*.backup
+*.backup_*

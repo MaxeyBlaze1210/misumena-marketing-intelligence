@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Playlists — MMI Workspace</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/workspace.css?v=playlists2"
+    >
+</head>
+
+<body>
+    <main class="workspace">
+
+        <nav class="top-workspace-tabs">
+            <a href="/workspace/releases">
+                Releases
+            </a>
+            <a
+                class="active"
+                href="/workspace/playlists"
+            >
+                Playlists
+            </a>
+            <a href="/workspace/contacts">
+                Contacts
+            </a>
+            <a href="/workspace/research">
+                Research
+            </a>
+        </nav>
+
+        <header class="workspace-header">
+            <div>
+                <p class="eyebrow">
+                    Misumena Marketing Intelligence
+                </p>
+                <h1>Playlists</h1>
+            </div>
+
+            <div class="playlist-header-actions">
+                <a
+                    class="secondary-button"
+                    href="/workspace/playlists"
+                >
+                    Check all
+                </a>
+
+                <form
+                    method="post"
+                    action="/workspace/playlists/sync"
+                >
+                    <button
+                        class="primary-button"
+                        type="submit"
+                    >
+                        Sync Apple Music
+                    </button>
+                </form>
+            </div>
+        </header>
+
+        {% if request.query_params.get("sync") == "success" %}
+            <div class="sync-banner sync-banner-ok">
+                ✓ Apple Music sync complete.
+                {{ request.query_params.get("changed", "0") }}
+                playlist(s) rebuilt.
+            </div>
+        {% elif request.query_params.get("sync") == "error" %}
+            <div class="sync-banner sync-banner-error">
+                <strong>Sync failed.</strong>
+                {{ request.query_params.get("message", "") }}
+            </div>
+        {% endif %}
+
+        <section class="playlist-grid">
+
+            {% for playlist in playlists %}
+
+            <article class="playlist-card">
+
+                <h2>{{ playlist.name }}</h2>
+
+                {% if playlist.error %}
+
+                    <div class="playlist-error">
+                        <strong>Could not check playlist</strong>
+                        <p>{{ playlist.error }}</p>
+                    </div>
+
+                {% else %}
+
+                    <div class="playlist-counts">
+
+                        <div>
+                            <span>Spotify</span>
+                            <strong>
+                                {{ playlist.spotify_count }}
+                            </strong>
+                        </div>
+
+                        <div class="playlist-arrow">
+                            →
+                        </div>
+
+                        <div>
+                            <span>Apple</span>
+                            <strong>
+                                {{ playlist.apple_count }}
+                            </strong>
+                        </div>
+
+                    </div>
+
+                    {% if playlist.ordered
+                          and not playlist.extras %}
+
+                        <p class="sync-status sync-ok">
+                            ✓ Correct relative Spotify order
+                        </p>
+
+                    {% else %}
+
+                        <p class="sync-status sync-warning">
+                            ⚠ Reconciliation needed
+                        </p>
+
+                    {% endif %}
+
+                    <div class="playlist-stats">
+
+                        <div>
+                            <span>Matched</span>
+                            <strong>
+                                {{ playlist.matched_count }}
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>Missing on Apple</span>
+                            <strong>
+                                {{ playlist.missing|length }}
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span>Apple-only</span>
+                            <strong>
+                                {{ playlist.extras|length }}
+                            </strong>
+                        </div>
+
+                    </div>
+
+                    {% if playlist.missing %}
+
+                    <details class="playlist-details">
+                        <summary>
+                            {{ playlist.missing|length }}
+                            unavailable on Apple
+                        </summary>
+
+                        <ol>
+                            {% for track in playlist.missing %}
+                            <li>
+                                <strong>
+                                    {{ track.artist }}
+                                </strong>
+                                — {{ track.title }}
+                            </li>
+                            {% endfor %}
+                        </ol>
+                    </details>
+
+                    {% endif %}
+
+                    {% if playlist.extras %}
+
+                    <details class="playlist-details">
+                        <summary>
+                            {{ playlist.extras|length }}
+                            Apple-only tracks
+                        </summary>
+
+                        <ol>
+                            {% for track in playlist.extras %}
+                            <li>
+                                <strong>
+                                    {{ track.artist }}
+                                </strong>
+                                — {{ track.title }}
+                            </li>
+                            {% endfor %}
+                        </ol>
+                    </details>
+
+                    {% endif %}
+
+                {% endif %}
+
+            </article>
+
+            {% endfor %}
+
+        </section>
+
+    </main>
+</body>
+</html>

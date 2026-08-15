@@ -199,6 +199,30 @@ def import_meta_campaign(
                 or 0
             )
 
+            metric.post_likes = int(
+                find_action_value(
+                    actions,
+                    "onsite_conversion.post_net_like",
+                )
+                or 0
+            )
+
+            metric.post_saves = int(
+                find_action_value(
+                    actions,
+                    "onsite_conversion.post_net_save",
+                )
+                or 0
+            )
+
+            metric.post_reactions = int(
+                find_action_value(
+                    actions,
+                    "post_reaction",
+                )
+                or 0
+            )
+
             imported_metrics += 1
 
         db.commit()

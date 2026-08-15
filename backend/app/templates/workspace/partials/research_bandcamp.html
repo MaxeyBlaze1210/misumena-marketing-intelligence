@@ -1,0 +1,179 @@
+<article class="workspace-card">
+
+    <h2>Historical Bandcamp evidence</h2>
+
+    <p style="
+        color:#666;
+        line-height:1.5;
+    ">
+        Historical purchases and supporter activity from
+        Misumena's Bandcamp catalogue.
+    </p>
+
+
+    {% if bandcamp_research %}
+
+        <div style="
+            display:grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(150px, 1fr));
+            gap:12px;
+            margin-top:18px;
+        ">
+
+            <div style="
+                border:1px solid #e3e3e3;
+                border-radius:10px;
+                padding:16px;
+                background:#fafafa;
+            ">
+                <div style="color:#666;">
+                    Purchases
+                </div>
+
+                <strong style="font-size:24px;">
+                    {{ bandcamp_research.summary.purchases }}
+                </strong>
+            </div>
+
+
+            <div style="
+                border:1px solid #e3e3e3;
+                border-radius:10px;
+                padding:16px;
+                background:#fafafa;
+            ">
+                <div style="color:#666;">
+                    Unique buyers
+                </div>
+
+                <strong style="font-size:24px;">
+                    {{ bandcamp_research.summary.unique_buyers }}
+                </strong>
+            </div>
+
+
+            <div style="
+                border:1px solid #e3e3e3;
+                border-radius:10px;
+                padding:16px;
+                background:#fafafa;
+            ">
+                <div style="color:#666;">
+                    Repeat buyers
+                </div>
+
+                <strong style="font-size:24px;">
+                    {{ bandcamp_research.summary.repeat_buyers }}
+                </strong>
+            </div>
+
+
+            <div style="
+                border:1px solid #e3e3e3;
+                border-radius:10px;
+                padding:16px;
+                background:#fafafa;
+            ">
+                <div style="color:#666;">
+                    Net revenue
+                </div>
+
+                <strong style="font-size:24px;">
+                    €{{ "%.2f"|format(
+                        bandcamp_research.summary.net_revenue
+                    ) }}
+                </strong>
+            </div>
+
+        </div>
+
+
+        <div style="
+            display:grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(300px, 1fr));
+            gap:24px;
+            margin-top:28px;
+        ">
+
+            <div>
+
+                <h3>Top countries</h3>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Country</th>
+                            <th>Purchases</th>
+                            <th>Buyers</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for row in bandcamp_research.countries %}
+                            <tr>
+                                <td>
+                                    {{ row.buyer_country_name }}
+                                </td>
+                                <td>
+                                    {{ row.purchases }}
+                                </td>
+                                <td>
+                                    {{ row.buyers }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+
+                    </tbody>
+                </table>
+
+            </div>
+
+
+            <div>
+
+                <h3>Top purchased items</h3>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Purchases</th>
+                            <th>Buyers</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for row in bandcamp_research["items"] %}
+                            <tr>
+                                <td>
+                                    {{ row.item_name }}
+                                </td>
+                                <td>
+                                    {{ row.purchases }}
+                                </td>
+                                <td>
+                                    {{ row.buyers }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+
+                    </tbody>
+                </table>
+
+            </div>
+
+        </div>
+
+    {% else %}
+
+        <p>
+            No historical Bandcamp evidence imported yet.
+        </p>
+
+    {% endif %}
+
+</article>

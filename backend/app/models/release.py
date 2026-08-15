@@ -25,6 +25,8 @@ class Release(Base):
     youtube_url = Column(String)
     bandcamp_url = Column(String)
 
+    promo_folder_url = Column(String)
+
     meta_audience_id = Column(
         "audience_family_id",
         Integer,

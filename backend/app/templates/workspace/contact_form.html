@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>{{ 'Edit Contact' if edit_mode|default(false) else 'Add Contact' }} — MMI Workspace</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/workspace.css?v=contacts2"
+    >
+</head>
+
+<body>
+<main class="workspace">
+
+    <nav class="top-workspace-tabs">
+        <a href="/workspace/releases">
+            Releases
+        </a>
+
+        <a href="/workspace/playlists">
+            Playlists
+        </a>
+
+        <a
+            class="active"
+            href="/workspace/contacts"
+        >
+            Contacts
+        </a>
+
+        <a href="/workspace/research">
+            Research
+        </a>
+    </nav>
+
+    <header class="workspace-header">
+        <div>
+            <p class="eyebrow">
+                Promo database
+            </p>
+
+            <h1>{{ 'Edit contact' if edit_mode|default(false) else 'Add contact' }}</h1>
+
+            <p>
+                {{ 'Update this promo recipient.' if edit_mode|default(false) else 'Add a new promo recipient to MMI.' }}
+            </p>
+        </div>
+    </header>
+
+    <section class="contact-form-card">
+
+        {% if error %}
+        <div class="contact-form-error">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <form
+            method="post"
+            action="{% if edit_mode|default(false) %}/workspace/contacts/{{ contact.id }}/edit{% else %}/workspace/contacts/new{% endif %}"
+            class="contact-form"
+        >
+
+            <div class="contact-form-grid">
+
+                <label>
+                    <span>Name</span>
+                    <input
+                        type="text"
+                        name="name"
+                        value="{{ contact.name if contact else '' }}"
+                        placeholder="Jane Smith"
+                    >
+                </label>
+
+                <label>
+                    <span>Greeting name</span>
+                    <input
+                        type="text"
+                        name="greeting_name"
+                        value="{{ contact.greeting_name if contact else '' }}"
+                        placeholder="Rachel"
+                    >
+                    <small>
+                        Used for “Hello Rachel,” in promo emails.
+                    </small>
+                </label>
+
+                <label>
+                    <span>Email *</span>
+                    <input
+                        type="email"
+                        name="email"
+                        required
+                        value="{{ contact.email if contact else '' }}"
+                        placeholder="jane@example.com"
+                    >
+                </label>
+
+                <label>
+                    <span>Organization</span>
+                    <input
+                        type="text"
+                        name="organization"
+                        value="{{ contact.organization if contact else '' }}"
+                        placeholder="Radio Nova"
+                    >
+                </label>
+
+                <label>
+                    <span>Type</span>
+
+                    {% set selected_type =
+                        contact.contact_type if contact else ''
+                    %}
+
+                    <select name="contact_type">
+                        <option value="">Select type</option>
+
+                        <option
+                            value="radio"
+                            {% if selected_type == "radio" %}selected{% endif %}
+                        >
+                            Radio
+                        </option>
+
+                        <option
+                            value="dj"
+                            {% if selected_type == "dj" %}selected{% endif %}
+                        >
+                            DJ
+                        </option>
+
+                        <option
+                            value="blog"
+                            {% if selected_type == "blog" %}selected{% endif %}
+                        >
+                            Blog / Press
+                        </option>
+
+                        <option
+                            value="spotify_curator"
+                            {% if selected_type == "spotify_curator" %}selected{% endif %}
+                        >
+                            Spotify curator
+                        </option>
+
+                        <option
+                            value="label"
+                            {% if selected_type == "label" %}selected{% endif %}
+                        >
+                            Label
+                        </option>
+
+                        <option
+                            value="other"
+                            {% if selected_type == "other" %}selected{% endif %}
+                        >
+                            Other
+                        </option>
+                    </select>
+                </label>
+
+                <label>
+                    <span>Country</span>
+                    <input
+                        type="text"
+                        name="country"
+                        value="{{ contact.country if contact else '' }}"
+                        placeholder="Germany"
+                    >
+                </label>
+
+            </div>
+
+            <label class="contact-notes-field">
+                <span>Notes</span>
+
+                <textarea
+                    name="notes"
+                    rows="5"
+                    placeholder="Contact preferences, previous coverage, relevant shows..."
+                >{{ contact.notes if contact else '' }}</textarea>
+            </label>
+
+            <div class="contact-form-actions">
+                <a
+                    href="/workspace/contacts"
+                    class="secondary-button"
+                >
+                    Cancel
+                </a>
+
+                <button
+                    type="submit"
+                    class="primary-button"
+                >
+                    {{ 'Save changes' if edit_mode|default(false) else 'Add contact' }}
+                </button>
+            </div>
+
+        </form>
+
+    </section>
+
+</main>
+</body>
+</html>
