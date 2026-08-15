@@ -17,3 +17,6 @@ data/*.db
 
 # Logs
 *.log
+# Local research / generated datasets
+backend/data/*_bandcamp_raw_data_*.csv
+backend/data/meta_interest_*.json
