@@ -8,11 +8,21 @@ from google.auth.transport.requests import Request
 SCOPES = [
     "https://www.googleapis.com/auth/youtube.readonly",
     "https://www.googleapis.com/auth/yt-analytics.readonly",
+    "https://www.googleapis.com/auth/youtube.upload",
+    "https://www.googleapis.com/auth/youtube.force-ssl",
 ]
 
 
-CLIENT_SECRET_FILE = "secrets/youtube_client_secret.json"
-TOKEN_FILE = "secrets/youtube_token.json"
+SECRETS_DIR = os.getenv("SECRETS_DIR", "secrets")
+
+CLIENT_SECRET_FILE = os.path.join(
+    SECRETS_DIR,
+    "youtube_client_secret.json",
+)
+TOKEN_FILE = os.path.join(
+    SECRETS_DIR,
+    "youtube_token.json",
+)
 
 
 def get_youtube_credentials():

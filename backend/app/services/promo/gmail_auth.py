@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from google.auth.transport.requests import Request
@@ -10,12 +11,18 @@ SCOPES = [
     "https://www.googleapis.com/auth/gmail.send",
 ]
 
-CLIENT_SECRET_FILE = Path(
-    "secrets/gmail_client_secret.json"
+SECRETS_DIR = Path(
+    os.getenv("SECRETS_DIR", "secrets")
 )
 
-TOKEN_FILE = Path(
-    "secrets/gmail_token.json"
+CLIENT_SECRET_FILE = (
+    SECRETS_DIR
+    / "gmail_client_secret.json"
+)
+
+TOKEN_FILE = (
+    SECRETS_DIR
+    / "gmail_token.json"
 )
 
 

@@ -1,4 +1,5 @@
 import json
+import os
 import secrets
 import time
 import urllib.parse
@@ -15,7 +16,14 @@ AUTH_URL = "https://accounts.spotify.com/authorize"
 TOKEN_URL = "https://accounts.spotify.com/api/token"
 
 REDIRECT_URI = "http://127.0.0.1:8888/callback"
-TOKEN_FILE = Path("secrets/spotify_playlist_token.json")
+SECRETS_DIR = Path(
+    os.getenv("SECRETS_DIR", "secrets")
+)
+
+TOKEN_FILE = (
+    SECRETS_DIR
+    / "spotify_playlist_token.json"
+)
 
 SCOPES = [
     "playlist-read-private",
