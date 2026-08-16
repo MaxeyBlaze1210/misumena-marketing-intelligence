@@ -7,10 +7,355 @@ Promotion
 {% include "workspace/partials/landing_page.html" %}
 
 <article class="workspace-card">
-    <h3>YouTube Discovery</h3>
+
+    <p class="eyebrow">YouTube</p>
+    <h3>YouTube Publishing</h3>
+
+    {% if request.query_params.get("youtube_status") == "success" %}
     <p>
-        Metadata, playlists, thumbnails and recommendation optimization will live here.
+        ✓ {{ request.query_params.get("youtube_message") }}
+        {% if request.query_params.get("youtube_url") %}
+        <a
+            href="{{ request.query_params.get('youtube_url') }}"
+            target="_blank"
+        >
+            Open on YouTube
+        </a>
+        {% endif %}
     </p>
+    {% elif request.query_params.get("youtube_status") == "error" %}
+    <p>
+        YouTube upload failed:
+        {{ request.query_params.get("youtube_message") }}
+    </p>
+    {% endif %}
+
+    <p>
+        Prepare the full music video and short-form creatives
+        for publication on the MisumenaMusic YouTube channel.
+    </p>
+
+    <section class="promo-email-section">
+
+        <h4>Full video</h4>
+
+        {% if music_video_asset %}
+
+            <p>
+                <strong>
+                    {{ music_video_asset.name }}
+                </strong>
+            </p>
+
+            {% if music_video_asset.youtube_video_id %}
+
+                <div class="youtube-uploaded-state">
+
+                    <p>
+                        <strong>Status:</strong>
+                        {{ music_video_asset.youtube_privacy_status|capitalize }}
+                    </p>
+
+                    <p>
+                        <strong>YouTube ID:</strong>
+                        {{ music_video_asset.youtube_video_id }}
+                    </p>
+
+                    {% if music_video_asset.youtube_url %}
+                    <p>
+                        <a
+                            href="{{ music_video_asset.youtube_url }}"
+                            target="_blank"
+                        >
+                            Open on YouTube ↗
+                        </a>
+                    </p>
+                    {% endif %}
+
+                </div>
+
+            {% else %}
+
+                <form
+                    method="post"
+                    action="/workspace/releases/{{ release.id }}/promotion/youtube/full"
+                    class="youtube-short-form"
+                >
+
+                    <label>
+                        <span>Title</span>
+
+                        <input
+                            type="text"
+                            name="title"
+                            required
+                            value="{{ release.artist }} - {{ release.title }} (Official Music Video)"
+                        >
+                    </label>
+
+                    <label>
+                        <span>Description</span>
+
+                        <textarea
+                            name="description"
+                            rows="6"
+                        >{{ release.title }} by {{ release.artist }}.
+
+Official music video.
+
+#Misumena</textarea>
+                    </label>
+
+                    <label class="youtube-visibility-field">
+                        <span>Visibility</span>
+
+                        <select name="privacy_status">
+                            <option value="private" selected>
+                                Private
+                            </option>
+
+                            <option value="unlisted">
+                                Unlisted
+                            </option>
+
+                            <option value="public">
+                                Public
+                            </option>
+                        </select>
+                    </label>
+
+                    <div class="youtube-short-actions">
+                        <button
+                            type="submit"
+                            class="primary-button"
+                            onclick="return confirm(
+                                'Upload the full music video to YouTube?'
+                            );"
+                        >
+                            Upload full video
+                        </button>
+                    </div>
+
+                </form>
+
+            {% endif %}
+
+        {% else %}
+
+            <p class="promo-email-help">
+                No music video asset is available for this release.
+            </p>
+
+        {% endif %}
+
+    </section>
+
+    <section class="promo-email-section youtube-shorts-section">
+
+        <div class="youtube-section-heading">
+            <h4>Shorts</h4>
+            <span>
+                {{ short_form_creatives|length }}
+                available
+            </span>
+        </div>
+
+        {% if short_form_creatives %}
+
+            <div class="youtube-short-list">
+
+                {% for asset in short_form_creatives %}
+
+                <details class="youtube-short-item">
+
+                    <summary>
+                        <span>
+                            <strong>{{ asset.name }}</strong>
+                            <small>Short-form video</small>
+                        </span>
+
+                        {% if asset.youtube_video_id %}
+                            <span class="youtube-published">
+                                ✓ Uploaded
+                                {% if asset.youtube_privacy_status %}
+                                    · {{ asset.youtube_privacy_status|capitalize }}
+                                {% endif %}
+                            </span>
+                        {% else %}
+                            <span class="youtube-configure">
+                                Configure
+                            </span>
+                        {% endif %}
+                    </summary>
+
+                    {% if asset.youtube_video_id %}
+
+                    <div class="youtube-uploaded-state">
+
+                        <p>
+                            <strong>Status:</strong>
+                            {{ asset.youtube_privacy_status|capitalize }}
+                        </p>
+
+                        <p>
+                            <strong>YouTube ID:</strong>
+                            {{ asset.youtube_video_id }}
+                        </p>
+
+                        {% if asset.youtube_url %}
+                        <p>
+                            <a
+                                href="{{ asset.youtube_url }}"
+                                target="_blank"
+                            >
+                                Open on YouTube ↗
+                            </a>
+                        </p>
+                        {% endif %}
+
+                        <form
+                            method="post"
+                            action="/workspace/releases/{{ release.id }}/promotion/youtube/visibility"
+                            class="youtube-visibility-form"
+                        >
+                            <input
+                                type="hidden"
+                                name="asset_id"
+                                value="{{ asset.id }}"
+                            >
+
+                            <label>
+                                <span>Visibility</span>
+
+                                <select name="privacy_status">
+                                    <option
+                                        value="private"
+                                        {% if asset.youtube_privacy_status == "private" %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        Private
+                                    </option>
+
+                                    <option
+                                        value="unlisted"
+                                        {% if asset.youtube_privacy_status == "unlisted" %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        Unlisted
+                                    </option>
+
+                                    <option
+                                        value="public"
+                                        {% if asset.youtube_privacy_status == "public" %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        Public
+                                    </option>
+                                </select>
+                            </label>
+
+                            <button
+                                type="submit"
+                                class="primary-button"
+                            >
+                                Update visibility
+                            </button>
+                        </form>
+
+                    </div>
+
+                    {% else %}
+
+                    <form
+                        method="post"
+                        action="/workspace/releases/{{ release.id }}/promotion/youtube/short"
+                        class="youtube-short-form"
+                    >
+
+                        <input
+                            type="hidden"
+                            name="asset_id"
+                            value="{{ asset.id }}"
+                        >
+
+                        <label>
+                            <span>Title</span>
+
+                            <input
+                                type="text"
+                                name="title"
+                                required
+                                value="{{ release.artist }} - {{ release.title }}"
+                            >
+                        </label>
+
+                        <label>
+                            <span>Description</span>
+
+                            <textarea
+                                name="description"
+                                rows="5"
+                            >{{ release.title }} by {{ release.artist }}.
+
+#Misumena #Shorts</textarea>
+                        </label>
+
+                        <label class="youtube-visibility-field">
+                            <span>Visibility</span>
+
+                            <select name="privacy_status">
+                                <option value="private" selected>
+                                    Private
+                                </option>
+                                <option value="unlisted">
+                                    Unlisted
+                                </option>
+                                <option value="public">
+                                    Public
+                                </option>
+                            </select>
+                        </label>
+
+                        <div class="youtube-short-actions">
+                            <button
+                                type="submit"
+                                class="primary-button"
+                                onclick="return confirm(
+                                    'Upload this creative to YouTube?'
+                                );"
+                            >
+                                Upload as YouTube Short
+                            </button>
+                        </div>
+
+                    </form>
+
+                    {% endif %}
+
+                </details>
+
+                {% endfor %}
+
+            </div>
+
+        {% else %}
+
+            <p class="promo-email-help">
+                No short-form video assets are available
+                for this release.
+            </p>
+
+        {% endif %}
+
+    </section>
+
+
+    </section>
+
+
 </article>
 
 <article class="workspace-card promo-email-card">

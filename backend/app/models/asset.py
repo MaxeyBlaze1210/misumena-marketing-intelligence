@@ -59,6 +59,27 @@ class Asset(Base):
         nullable=True,
     )
 
+    youtube_video_id = Column(
+        String,
+        nullable=True,
+        index=True,
+    )
+
+    youtube_url = Column(
+        String,
+        nullable=True,
+    )
+
+    youtube_privacy_status = Column(
+        String,
+        nullable=True,
+    )
+
+    youtube_uploaded_at = Column(
+        DateTime,
+        nullable=True,
+    )
+
     created_at = Column(
         DateTime,
         nullable=False,

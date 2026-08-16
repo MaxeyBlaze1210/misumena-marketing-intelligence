@@ -406,6 +406,15 @@ def release_promotion(
             .all()
         )
 
+        music_video_asset = (
+            db.query(Asset)
+            .filter(
+                Asset.release_id == release_id,
+                Asset.asset_type == "music_video",
+            )
+            .one_or_none()
+        )
+
         # --------------------------------------------------
         # Selected campaign creatives
         # --------------------------------------------------
@@ -688,6 +697,9 @@ def release_promotion(
 
                 "short_form_creatives":
                     short_form_creatives,
+
+                "music_video_asset":
+                    music_video_asset,
 
                 "selected_creative_ids":
                     selected_creative_ids,
@@ -2906,3 +2918,466 @@ def sync_release_promo_assets_workspace(
 
     finally:
         db.close()
+
+
+@router.post(
+    "/releases/{release_id}/promotion/youtube/short"
+)
+async def upload_release_youtube_short(
+    release_id: int,
+    request: Request,
+):
+    from pathlib import Path
+    import tempfile
+
+    from app.services.dropbox_service import (
+        download_shared_folder_asset,
+    )
+    from app.services.youtube_upload_service import (
+        upload_video,
+    )
+
+    form = await request.form()
+
+    try:
+        asset_id = int(form.get("asset_id", ""))
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=400,
+            detail="A valid asset is required.",
+        )
+
+    title = (form.get("title") or "").strip()
+    description = (
+        form.get("description") or ""
+    ).strip()
+
+    privacy_status = (
+        form.get("privacy_status") or "private"
+    ).strip()
+
+    if not title:
+        raise HTTPException(
+            status_code=400,
+            detail="YouTube title is required.",
+        )
+
+    if privacy_status not in {
+        "private",
+        "unlisted",
+        "public",
+    }:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid YouTube visibility.",
+        )
+
+    db = SessionLocal()
+    temp_path = None
+
+    try:
+        asset = (
+            db.query(Asset)
+            .filter(
+                Asset.id == asset_id,
+                Asset.release_id == release_id,
+                Asset.asset_type
+                == "short_form_video",
+            )
+            .one_or_none()
+        )
+
+        if asset is None:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    "Short-form video asset "
+                    "not found."
+                ),
+            )
+
+        if asset.youtube_video_id:
+            raise RuntimeError(
+                "This creative has already been "
+                "uploaded to YouTube."
+            )
+
+        if not asset.source_url:
+            raise RuntimeError(
+                "Asset has no Dropbox source URL."
+            )
+
+        suffix = (
+            Path(
+                asset.file_name
+                or asset.name
+            ).suffix
+            or ".mp4"
+        )
+
+        handle = tempfile.NamedTemporaryFile(
+            prefix=(
+                f"mmi_youtube_short_"
+                f"{release_id}_"
+            ),
+            suffix=suffix,
+            delete=False,
+        )
+
+        temp_path = handle.name
+        handle.close()
+
+        download_shared_folder_asset(
+            shared_folder_url=
+                asset.source_url,
+            dropbox_file_id=
+                asset.source_id,
+            destination_path=
+                temp_path,
+        )
+
+        result = upload_video(
+            file_path=temp_path,
+            title=title,
+            description=description,
+            privacy_status=privacy_status,
+        )
+
+        from datetime import datetime, timezone
+
+        asset.youtube_video_id = (
+            result["video_id"]
+        )
+        asset.youtube_url = (
+            result["youtube_url"]
+        )
+        asset.youtube_privacy_status = (
+            result["privacy_status"]
+        )
+        asset.youtube_uploaded_at = (
+            datetime.now(timezone.utc)
+        )
+
+        db.commit()
+
+        params = urlencode(
+            {
+                "youtube_status": "success",
+                "youtube_message": (
+                    "YouTube Short uploaded "
+                    "successfully."
+                ),
+                "youtube_video_id":
+                    result["video_id"],
+                "youtube_url":
+                    result["youtube_url"],
+            }
+        )
+
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+        params = urlencode(
+            {
+                "youtube_status": "error",
+                "youtube_message": str(exc),
+            }
+        )
+
+    finally:
+        if temp_path:
+            Path(temp_path).unlink(
+                missing_ok=True
+            )
+
+        db.close()
+
+    return RedirectResponse(
+        url=(
+            f"/workspace/releases/"
+            f"{release_id}/promotion?"
+            f"{params}"
+        ),
+        status_code=303,
+    )
+
+
+@router.post(
+    "/releases/{release_id}/promotion/youtube/full"
+)
+async def upload_release_youtube_full_video(
+    release_id: int,
+    request: Request,
+):
+    from pathlib import Path
+    from datetime import datetime, timezone
+
+    from app.services.youtube_release_upload_service import (
+        download_release_music_video,
+    )
+    from app.services.youtube_upload_service import (
+        upload_video,
+    )
+
+    form = await request.form()
+
+    title = (
+        form.get("title")
+        or ""
+    ).strip()
+
+    description = (
+        form.get("description")
+        or ""
+    ).strip()
+
+    privacy_status = (
+        form.get("privacy_status")
+        or "private"
+    ).strip()
+
+    if not title:
+        raise HTTPException(
+            status_code=400,
+            detail="YouTube title is required.",
+        )
+
+    if privacy_status not in {
+        "private",
+        "unlisted",
+        "public",
+    }:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid YouTube visibility.",
+        )
+
+    db = SessionLocal()
+    temp_path = None
+
+    try:
+        release = (
+            db.query(Release)
+            .filter(
+                Release.id == release_id
+            )
+            .one_or_none()
+        )
+
+        if release is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Release not found.",
+            )
+
+        asset = (
+            db.query(Asset)
+            .filter(
+                Asset.release_id == release_id,
+                Asset.asset_type == "music_video",
+            )
+            .one_or_none()
+        )
+
+        if asset is None:
+            raise RuntimeError(
+                "No music video asset is configured."
+            )
+
+        if asset.youtube_video_id:
+            raise RuntimeError(
+                "This music video has already been "
+                "uploaded to YouTube."
+            )
+
+        temp_path, asset = (
+            download_release_music_video(
+                db,
+                release,
+            )
+        )
+
+        result = upload_video(
+            file_path=temp_path,
+            title=title,
+            description=description,
+            privacy_status=privacy_status,
+        )
+
+        asset.youtube_video_id = (
+            result["video_id"]
+        )
+
+        asset.youtube_url = (
+            result["youtube_url"]
+        )
+
+        asset.youtube_privacy_status = (
+            result["privacy_status"]
+        )
+
+        asset.youtube_uploaded_at = (
+            datetime.now(timezone.utc)
+        )
+
+        release.youtube_url = (
+            result["youtube_url"]
+        )
+
+        db.commit()
+
+        params = urlencode(
+            {
+                "youtube_status": "success",
+                "youtube_message": (
+                    "Full music video uploaded "
+                    "successfully."
+                ),
+                "youtube_video_id":
+                    result["video_id"],
+                "youtube_url":
+                    result["youtube_url"],
+            }
+        )
+
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+        db.rollback()
+
+        params = urlencode(
+            {
+                "youtube_status": "error",
+                "youtube_message": str(exc),
+            }
+        )
+
+    finally:
+        if temp_path:
+            Path(temp_path).unlink(
+                missing_ok=True
+            )
+
+        db.close()
+
+    return RedirectResponse(
+        url=(
+            f"/workspace/releases/"
+            f"{release_id}/promotion?"
+            f"{params}"
+        ),
+        status_code=303,
+    )
+
+
+@router.post(
+    "/releases/{release_id}/promotion/youtube/visibility"
+)
+async def update_release_youtube_visibility(
+    release_id: int,
+    request: Request,
+):
+    from app.services.youtube_upload_service import (
+        update_video_privacy,
+    )
+
+    form = await request.form()
+
+    try:
+        asset_id = int(
+            form.get("asset_id", "")
+        )
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=400,
+            detail="A valid asset is required.",
+        )
+
+    privacy_status = (
+        form.get("privacy_status")
+        or ""
+    ).strip()
+
+    if privacy_status not in {
+        "private",
+        "unlisted",
+        "public",
+    }:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid YouTube visibility.",
+        )
+
+    db = SessionLocal()
+
+    try:
+        asset = (
+            db.query(Asset)
+            .filter(
+                Asset.id == asset_id,
+                Asset.release_id == release_id,
+            )
+            .one_or_none()
+        )
+
+        if asset is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Asset not found.",
+            )
+
+        if not asset.youtube_video_id:
+            raise RuntimeError(
+                "This asset has not been uploaded "
+                "to YouTube yet."
+            )
+
+        result = update_video_privacy(
+            video_id=asset.youtube_video_id,
+            privacy_status=privacy_status,
+        )
+
+        asset.youtube_privacy_status = (
+            result["privacy_status"]
+        )
+
+        db.commit()
+
+        params = urlencode(
+            {
+                "youtube_status": "success",
+                "youtube_message": (
+                    "YouTube visibility updated "
+                    f"to {result['privacy_status']}."
+                ),
+                "youtube_url":
+                    result["youtube_url"],
+            }
+        )
+
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+        db.rollback()
+
+        params = urlencode(
+            {
+                "youtube_status": "error",
+                "youtube_message": str(exc),
+            }
+        )
+
+    finally:
+        db.close()
+
+    return RedirectResponse(
+        url=(
+            f"/workspace/releases/"
+            f"{release_id}/promotion?"
+            f"{params}"
+        ),
+        status_code=303,
+    )
