@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     # OpenAI
     openai_api_key: str
 
+    # Workspace authentication
+    workspace_username: str | None = None
+    workspace_password: str | None = None
+
     # Dropbox
     dropbox_access_token: str | None = None
     dropbox_refresh_token: str | None = None

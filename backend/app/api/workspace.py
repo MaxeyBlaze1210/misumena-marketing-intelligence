@@ -1,11 +1,15 @@
 from datetime import date
 from urllib.parse import urlencode
+import secrets
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.database.database import SessionLocal, get_db
+from app.core.config import settings
 
 from app.models.release import Release
 from app.models.meta_audience import MetaAudience
@@ -46,9 +50,48 @@ from app.services.meta_execution_apply_service import (
 )
 
 
+workspace_security = HTTPBasic()
+
+
+def require_workspace_auth(
+    credentials: HTTPBasicCredentials = Depends(
+        workspace_security
+    ),
+):
+    username = settings.workspace_username
+    password = settings.workspace_password
+
+    if not username or not password:
+        raise HTTPException(
+            status_code=503,
+            detail="Workspace authentication is not configured.",
+        )
+
+    username_ok = secrets.compare_digest(
+        credentials.username.encode("utf-8"),
+        username.encode("utf-8"),
+    )
+    password_ok = secrets.compare_digest(
+        credentials.password.encode("utf-8"),
+        password.encode("utf-8"),
+    )
+
+    if not (username_ok and password_ok):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid workspace credentials.",
+            headers={
+                "WWW-Authenticate": "Basic",
+            },
+        )
+
+
 router = APIRouter(
     prefix="/workspace",
     tags=["Workspace"],
+    dependencies=[
+        Depends(require_workspace_auth),
+    ],
 )
 
 templates = Jinja2Templates(
