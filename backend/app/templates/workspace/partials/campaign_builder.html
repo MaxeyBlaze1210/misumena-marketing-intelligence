@@ -211,18 +211,43 @@
                     max-width:720px;
                 ">
 
-                    <label>
-                        Destination URL
+                    <div>
+                        <div class="campaigns-label">
+                            Destination
+                        </div>
 
-                        <input
-                            type="url"
-                            name="destination_url"
-                            value="{{ campaign_plan.destination_url or '' }}"
-                            placeholder="https://..."
-                            required
-                            style="width:100%;"
-                        >
-                    </label>
+                        {% if release.landing_slug %}
+                            <div
+                                style="
+                                    padding:12px 14px;
+                                    border:1px solid #d9d9d9;
+                                    border-radius:8px;
+                                    background:#f7f7f7;
+                                    word-break:break-all;
+                                "
+                            >
+                                /r/{{ release.landing_slug }}
+                            </div>
+
+                            <div
+                                style="
+                                    margin-top:6px;
+                                    color:#777;
+                                    font-size:13px;
+                                "
+                            >
+                                Uses the public MMI landing page automatically.
+                            </div>
+                        {% else %}
+                            <div
+                                style="
+                                    color:#b42318;
+                                "
+                            >
+                                Landing page not configured.
+                            </div>
+                        {% endif %}
+                    </div>
 
                     <label>
                         Call to action

@@ -1,9 +1,7 @@
 <!DOCTYPE html>
-
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
 
     <meta
@@ -21,7 +19,6 @@
     >
 
     {% if meta_pixel_id %}
-
     <script>
         !function(f,b,e,v,n,t,s)
         {
@@ -58,78 +55,140 @@
             'PageView'
         );
     </script>
-
     {% endif %}
-
 </head>
 
 <body>
 
-<div class="container">
-
     {% if release.artwork_url %}
-        <img
-            class="cover"
-            src="{{ release.artwork_url }}"
-            alt="{{ release.title }} artwork"
-        >
+    <div
+        class="artwork-background"
+        style="background-image:url('{{ release.artwork_url }}');"
+    ></div>
     {% endif %}
 
-    <h1>{{ release.title }}</h1>
+    <div class="background-shade"></div>
 
-    <h2>{{ release.artist }}</h2>
+    <main class="page">
 
-    {% if release.landing_description %}
-        <p class="description">
-            {{ release.landing_description }}
-        </p>
-    {% endif %}
+        <section class="release-card">
 
-    <div class="buttons">
+            {% if release.artwork_url %}
+            <img
+                class="cover"
+                src="{{ release.artwork_url }}"
+                alt="{{ release.title }} artwork"
+            >
+            {% endif %}
 
-        {% if release.spotify_url %}
-        <a
-            class="button spotify"
-            href="/r/{{ release.landing_slug }}/go/spotify"
-            data-platform="spotify"
-        >
-            Spotify
-        </a>
-        {% endif %}
+            <div class="release-info">
 
-        {% if release.apple_music_url %}
-        <a
-            class="button"
-            href="/r/{{ release.landing_slug }}/go/apple_music"
-            data-platform="apple_music"
-        >
-            Apple Music
-        </a>
-        {% endif %}
+                <div class="release-heading">
+                    <h1>{{ release.title }}</h1>
+                    <p class="artist">
+                        {{ release.artist }}
+                    </p>
+                </div>
 
-        {% if release.youtube_url %}
-        <a
-            class="button"
-            href="/r/{{ release.landing_slug }}/go/youtube"
-            data-platform="youtube"
-        >
-            YouTube
-        </a>
-        {% endif %}
+                {% if release.landing_description %}
+                <p class="description">
+                    {{ release.landing_description }}
+                </p>
+                {% endif %}
 
-        {% if release.bandcamp_url %}
-        <a
-            class="button"
-            href="/r/{{ release.landing_slug }}/go/bandcamp"
-            data-platform="bandcamp"
-        >
-            Bandcamp
-        </a>
-        {% endif %}
+                <div class="services">
 
-    </div>
+                    {% if release.spotify_url %}
+                    <a
+                        class="service-link"
+                        href="/r/{{ release.landing_slug }}/go/spotify"
+                        data-platform="spotify"
+                    >
+                        <span class="service-identity">
+                            <span class="service-mark spotify-mark">
+                                ●
+                            </span>
+                            <span>Spotify</span>
+                        </span>
 
-</div>
+                        <span class="service-action">
+                            Listen
+                            <span class="chevron">›</span>
+                        </span>
+                    </a>
+                    {% endif %}
+
+                    {% if release.apple_music_url %}
+                    <a
+                        class="service-link"
+                        href="/r/{{ release.landing_slug }}/go/apple_music"
+                        data-platform="apple_music"
+                    >
+                        <span class="service-identity">
+                            <span class="service-mark apple-mark">
+                                ♪
+                            </span>
+                            <span>Apple Music</span>
+                        </span>
+
+                        <span class="service-action">
+                            Listen
+                            <span class="chevron">›</span>
+                        </span>
+                    </a>
+                    {% endif %}
+
+                    {% if release.youtube_url %}
+                    <a
+                        class="service-link"
+                        href="/r/{{ release.landing_slug }}/go/youtube"
+                        data-platform="youtube"
+                    >
+                        <span class="service-identity">
+                            <span class="service-mark youtube-mark">
+                                ▶
+                            </span>
+                            <span>YouTube</span>
+                        </span>
+
+                        <span class="service-action">
+                            Watch
+                            <span class="chevron">›</span>
+                        </span>
+                    </a>
+                    {% endif %}
+
+                    {% if release.bandcamp_url %}
+                    <a
+                        class="service-link"
+                        href="/r/{{ release.landing_slug }}/go/bandcamp"
+                        data-platform="bandcamp"
+                    >
+                        <span class="service-identity">
+                            <span class="service-mark">
+                                B
+                            </span>
+                            <span>Bandcamp</span>
+                        </span>
+
+                        <span class="service-action">
+                            Listen
+                            <span class="chevron">›</span>
+                        </span>
+                    </a>
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <div class="brand">
+            MISUMENA
+        </div>
+
+    </main>
 
 <script>
     fetch(
@@ -192,5 +251,4 @@
 </script>
 
 </body>
-
 </html>

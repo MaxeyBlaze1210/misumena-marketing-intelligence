@@ -9,6 +9,7 @@ from fastapi import APIRouter, Form, HTTPException
 from fastapi.responses import RedirectResponse
 
 from app.database.database import SessionLocal
+from app.services.landing_url_service import build_release_landing_url
 from app.models.meta_audience import MetaAudience
 from app.models.meta_campaign_plan import MetaCampaignPlan
 from app.models.meta_campaign_variant import MetaCampaignVariant
@@ -821,17 +822,8 @@ def select_all_campaign_creatives(
 )
 def set_ad_settings(
     release_id: int,
-    destination_url: str = Form(...),
     call_to_action: str = Form("LISTEN_NOW"),
 ):
-    destination_url = destination_url.strip()
-
-    if not destination_url:
-        raise HTTPException(
-            status_code=400,
-            detail="Destination URL is required.",
-        )
-
     allowed_ctas = {
         "LISTEN_NOW",
     }
