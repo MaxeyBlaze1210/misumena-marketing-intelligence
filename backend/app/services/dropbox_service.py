@@ -152,14 +152,10 @@ def download_shared_folder_asset(
             "in its shared folder."
         )
 
-    relative_path = matching[
-        "path_lower"
-    ]
-
-    if not relative_path:
-        raise RuntimeError(
-            "Dropbox asset has no relative path."
-        )
+    # sharing_get_shared_link_file expects a path
+    # relative to the root of the shared folder link,
+    # not the full Dropbox path.
+    relative_path = "/" + matching["file_name"]
 
     dbx = get_dropbox_client()
 
