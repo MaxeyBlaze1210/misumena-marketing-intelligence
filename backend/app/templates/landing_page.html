@@ -149,7 +149,9 @@
 
             link.addEventListener(
                 "click",
-                function () {
+                function (event) {
+
+                    const destination = link.href;
 
                     {% if meta_pixel_id %}
 
@@ -157,19 +159,29 @@
                         typeof fbq
                         === "function"
                     ) {
+                        event.preventDefault();
+
                         fbq(
                             "track",
                             "ViewContent",
                             {
                                 content_name:
-                                    "{{ release.title|e }}",
+                                    {{ release.title|tojson }},
                                 content_category:
                                     link.dataset.platform,
                                 release_slug:
-                                    "{{ release.landing_slug|e }}",
+                                    {{ release.landing_slug|tojson }},
                                 platform:
                                     link.dataset.platform
                             }
+                        );
+
+                        setTimeout(
+                            function () {
+                                window.location.href =
+                                    destination;
+                            },
+                            350
                         );
                     }
 
