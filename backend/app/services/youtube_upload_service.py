@@ -3,6 +3,9 @@ from pathlib import Path
 from googleapiclient.http import MediaFileUpload
 
 from app.services.youtube_service import get_youtube_client
+from app.services.youtube_video_prepare_service import (
+    prepare_video_for_youtube,
+)
 
 
 def upload_video(
@@ -36,13 +39,23 @@ def upload_video(
 
     youtube = get_youtube_client()
 
-    media = MediaFileUpload(
-        str(path),
-        chunksize=8 * 1024 * 1024,
-        resumable=True,
-    )
+    prepared_path = None
+    created_prepared_file = False
 
-    request = youtube.videos().insert(
+    try:
+        prepared_path, created_prepared_file = (
+            prepare_video_for_youtube(
+                str(path)
+            )
+        )
+
+        media = MediaFileUpload(
+            str(prepared_path),
+            chunksize=8 * 1024 * 1024,
+            resumable=True,
+        )
+
+        request = youtube.videos().insert(
         part="snippet,status",
         body={
             "snippet": {
@@ -57,36 +70,45 @@ def upload_video(
         media_body=media,
     )
 
-    response = None
+        response = None
 
-    while response is None:
-        status, response = request.next_chunk()
+        while response is None:
+            status, response = request.next_chunk()
 
-        if status:
-            print(
-                f"YouTube upload: "
-                f"{int(status.progress() * 100)}%"
+            if status:
+                print(
+                    f"YouTube upload: "
+                    f"{int(status.progress() * 100)}%"
+                )
+
+        video_id = response["id"]
+
+        return {
+            "video_id": video_id,
+            "youtube_url": (
+                f"https://www.youtube.com/watch?v={video_id}"
+            ),
+            "title": response.get(
+                "snippet",
+                {},
+            ).get("title", title),
+            "privacy_status": response.get(
+                "status",
+                {},
+            ).get(
+                "privacyStatus",
+                privacy_status,
+            ),
+        }
+
+    finally:
+        if (
+            created_prepared_file
+            and prepared_path
+        ):
+            Path(prepared_path).unlink(
+                missing_ok=True
             )
-
-    video_id = response["id"]
-
-    return {
-        "video_id": video_id,
-        "youtube_url": (
-            f"https://www.youtube.com/watch?v={video_id}"
-        ),
-        "title": response.get(
-            "snippet",
-            {},
-        ).get("title", title),
-        "privacy_status": response.get(
-            "status",
-            {},
-        ).get(
-            "privacyStatus",
-            privacy_status,
-        ),
-    }
 
 
 def update_video_privacy(
