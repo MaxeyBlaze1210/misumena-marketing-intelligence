@@ -49,6 +49,7 @@ from app.models.contact import Contact
 from app.models.promo_campaign import PromoCampaign
 from app.models.promo_recipient import PromoRecipient
 from app.models.promo_click import PromoClick
+from app.models.landing_event import LandingEvent
 
 # Assets
 from app.models.asset import Asset

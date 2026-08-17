@@ -11,12 +11,55 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>{{ release.title }}</title>
+    <title>
+        {{ release.title }} — {{ release.artist }}
+    </title>
 
     <link
         rel="stylesheet"
         href="/static/css/landing.css"
     >
+
+    {% if meta_pixel_id %}
+
+    <script>
+        !function(f,b,e,v,n,t,s)
+        {
+            if(f.fbq)return;
+            n=f.fbq=function(){
+                n.callMethod
+                    ? n.callMethod.apply(n,arguments)
+                    : n.queue.push(arguments)
+            };
+            if(!f._fbq)f._fbq=n;
+            n.push=n;
+            n.loaded=!0;
+            n.version='2.0';
+            n.queue=[];
+            t=b.createElement(e);
+            t.async=!0;
+            t.src=v;
+            s=b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t,s)
+        }(
+            window,
+            document,
+            'script',
+            'https://connect.facebook.net/en_US/fbevents.js'
+        );
+
+        fbq(
+            'init',
+            '{{ meta_pixel_id }}'
+        );
+
+        fbq(
+            'track',
+            'PageView'
+        );
+    </script>
+
+    {% endif %}
 
 </head>
 
@@ -28,6 +71,7 @@
         <img
             class="cover"
             src="{{ release.artwork_url }}"
+            alt="{{ release.title }} artwork"
         >
     {% endif %}
 
@@ -46,8 +90,8 @@
         {% if release.spotify_url %}
         <a
             class="button spotify"
-            href="{{ release.spotify_url }}"
-            target="_blank"
+            href="/r/{{ release.landing_slug }}/go/spotify"
+            data-platform="spotify"
         >
             Spotify
         </a>
@@ -56,8 +100,8 @@
         {% if release.apple_music_url %}
         <a
             class="button"
-            href="{{ release.apple_music_url }}"
-            target="_blank"
+            href="/r/{{ release.landing_slug }}/go/apple_music"
+            data-platform="apple_music"
         >
             Apple Music
         </a>
@@ -66,8 +110,8 @@
         {% if release.youtube_url %}
         <a
             class="button"
-            href="{{ release.youtube_url }}"
-            target="_blank"
+            href="/r/{{ release.landing_slug }}/go/youtube"
+            data-platform="youtube"
         >
             YouTube
         </a>
@@ -76,8 +120,8 @@
         {% if release.bandcamp_url %}
         <a
             class="button"
-            href="{{ release.bandcamp_url }}"
-            target="_blank"
+            href="/r/{{ release.landing_slug }}/go/bandcamp"
+            data-platform="bandcamp"
         >
             Bandcamp
         </a>
@@ -86,6 +130,54 @@
     </div>
 
 </div>
+
+<script>
+    fetch(
+        "/r/{{ release.landing_slug }}/event/pageview",
+        {
+            method: "POST",
+            keepalive: true
+        }
+    ).catch(function () {
+        // Landing page must still work if
+        // MMI tracking temporarily fails.
+    });
+
+    document
+        .querySelectorAll("[data-platform]")
+        .forEach(function (link) {
+
+            link.addEventListener(
+                "click",
+                function () {
+
+                    {% if meta_pixel_id %}
+
+                    if (
+                        typeof fbq
+                        === "function"
+                    ) {
+                        fbq(
+                            "track",
+                            "ViewContent",
+                            {
+                                content_name:
+                                    "{{ release.title|e }}",
+                                content_category:
+                                    link.dataset.platform,
+                                release_slug:
+                                    "{{ release.landing_slug|e }}",
+                                platform:
+                                    link.dataset.platform
+                            }
+                        );
+                    }
+
+                    {% endif %}
+                }
+            );
+        });
+</script>
 
 </body>
 

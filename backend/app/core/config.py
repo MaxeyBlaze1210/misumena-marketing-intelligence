@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     meta_ad_account_id: str
     meta_page_id: str
     meta_instagram_user_id: str
+    meta_pixel_id: str | None = None
 
     # Promo email
     promo_public_base_url: str | None = None
