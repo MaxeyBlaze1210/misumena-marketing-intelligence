@@ -802,6 +802,61 @@ def release_promotion(
         db.close()
 
 
+@router.post(
+    "/releases/{release_id}/analytics/refresh"
+)
+def refresh_analytics(
+    release_id: int,
+):
+    from app.services.analytics_refresh_service import (
+        refresh_release_analytics,
+    )
+
+    try:
+        result = refresh_release_analytics(
+            release_id
+        )
+
+        meta_count = result[
+            "meta_campaigns"
+        ]
+
+        youtube_count = (
+            result.get("youtube") or {}
+        ).get("metric_rows", 0)
+
+        message = (
+            f"Refreshed {meta_count} Meta "
+            f"campaign(s) and {youtube_count} "
+            f"YouTube daily metric row(s)."
+        )
+
+        params = urlencode(
+            {
+                "checkpoint": "latest",
+                "analytics_status": "success",
+                "analytics_message": message,
+            }
+        )
+
+    except Exception as exc:
+        params = urlencode(
+            {
+                "checkpoint": "latest",
+                "analytics_status": "error",
+                "analytics_message": str(exc),
+            }
+        )
+
+    return RedirectResponse(
+        url=(
+            f"/workspace/releases/{release_id}"
+            f"/analytics?{params}"
+        ),
+        status_code=303,
+    )
+
+
 @router.get(
     "/releases/{release_id}/analytics"
 )
