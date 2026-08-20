@@ -1,3 +1,13 @@
+from urllib.parse import (
+    parse_qsl,
+    urlencode,
+    urlsplit,
+    urlunsplit,
+)
+
+from app.services.promo.promo_audio_sync import (
+    get_or_create_file_link,
+)
 from app.services.dropbox_service import (
     list_shared_folder_files,
 )
@@ -9,6 +19,32 @@ IMAGE_EXTENSIONS = {
     ".png",
     ".webp",
 }
+
+
+def make_direct_image_url(
+    shared_url: str,
+) -> str:
+    parts = urlsplit(shared_url)
+
+    query = dict(
+        parse_qsl(
+            parts.query,
+            keep_blank_values=True,
+        )
+    )
+
+    query.pop("dl", None)
+    query["raw"] = "1"
+
+    return urlunsplit(
+        (
+            parts.scheme,
+            parts.netloc,
+            parts.path,
+            urlencode(query),
+            parts.fragment,
+        )
+    )
 
 
 def sync_artwork(
@@ -28,7 +64,9 @@ def sync_artwork(
         item
         for item in files
         if any(
-            item["file_name"].lower().endswith(ext)
+            item["file_name"]
+            .lower()
+            .endswith(ext)
             for ext in IMAGE_EXTENSIONS
         )
     ]
@@ -37,8 +75,10 @@ def sync_artwork(
         item
         for item in candidates
         if (
-            "cover" in item["file_name"].lower()
-            or "artwork" in item["file_name"].lower()
+            "cover"
+            in item["file_name"].lower()
+            or "artwork"
+            in item["file_name"].lower()
         )
     ]
 
@@ -59,8 +99,23 @@ def sync_artwork(
             f"Candidates: {names}"
         )
 
-    # Keep the shared-folder URL as the source reference.
-    # We do not overwrite release.artwork_url here because
-    # that field needs a directly renderable image URL.
+    shared_url = get_or_create_file_link(
+        artwork["path_lower"]
+    )
 
-    return artwork
+    direct_url = make_direct_image_url(
+        shared_url
+    )
+
+    release.artwork_url = direct_url
+
+    db.commit()
+
+    return {
+        "file_name":
+            artwork["file_name"],
+        "dropbox_id":
+            artwork["dropbox_id"],
+        "artwork_url":
+            direct_url,
+    }
