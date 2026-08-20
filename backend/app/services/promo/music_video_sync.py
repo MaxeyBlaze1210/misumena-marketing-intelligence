@@ -33,12 +33,21 @@ def sync_music_video(
         )
     ]
 
-    # Prefer an explicitly named official video.
+    # Prefer filenames that explicitly identify the
+    # release's full-length / YouTube video.
     preferred = [
         item
         for item in candidates
-        if "official video"
-        in item["file_name"].lower()
+        if (
+            "official video"
+            in item["file_name"].lower()
+            or "youtube"
+            in item["file_name"].lower()
+            or "visualizer"
+            in item["file_name"].lower()
+            or "music video"
+            in item["file_name"].lower()
+        )
     ]
 
     if len(preferred) == 1:

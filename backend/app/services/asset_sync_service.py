@@ -14,6 +14,15 @@ def sync_dropbox_creatives(
         shared_folder_url
     )
 
+    # Short-form creatives must identify themselves as
+    # creatives. This prevents full music videos and
+    # visualizers from being imported as ad creatives.
+    dropbox_files = [
+        item
+        for item in dropbox_files
+        if "creative" in item["file_name"].lower()
+    ]
+
     created = 0
     updated = 0
 
@@ -52,6 +61,7 @@ def sync_dropbox_creatives(
 
         else:
             asset.name = file_name
+            asset.asset_type = "short_form_video"
             asset.file_name = file_name
             asset.mime_type = dropbox_file["mime_type"]
             asset.source_url = shared_folder_url
