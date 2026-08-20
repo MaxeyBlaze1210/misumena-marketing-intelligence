@@ -717,4 +717,41 @@ Official music video.
 
 {% include "workspace/partials/campaign_builder.html" %}
 
+
+<script>
+(function () {
+    const key = "mmi-promotion-scroll";
+
+    document
+        .querySelectorAll("form")
+        .forEach(function (form) {
+            form.addEventListener(
+                "submit",
+                function () {
+                    sessionStorage.setItem(
+                        key,
+                        String(window.scrollY)
+                    );
+                }
+            );
+        });
+
+    const saved =
+        sessionStorage.getItem(key);
+
+    if (saved !== null) {
+        sessionStorage.removeItem(key);
+
+        requestAnimationFrame(
+            function () {
+                window.scrollTo(
+                    0,
+                    Number(saved)
+                );
+            }
+        );
+    }
+})();
+</script>
+
 {% endblock %}
