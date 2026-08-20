@@ -2,7 +2,7 @@ from datetime import date
 from urllib.parse import urlencode
 import secrets
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.templating import Jinja2Templates
@@ -3480,3 +3480,68 @@ async def update_release_youtube_visibility(
         ),
         status_code=303,
     )
+
+
+@router.post(
+    "/releases/{release_id}/assets/promo-folder"
+)
+def save_promo_folder(
+    release_id: int,
+    promo_folder_url: str = Form(...),
+):
+    promo_folder_url = promo_folder_url.strip()
+
+    if not promo_folder_url:
+        raise HTTPException(
+            status_code=400,
+            detail="Dropbox promo folder URL is required.",
+        )
+
+    if "dropbox.com" not in promo_folder_url.lower():
+        raise HTTPException(
+            status_code=400,
+            detail="Please enter a Dropbox folder URL.",
+        )
+
+    db = SessionLocal()
+
+    try:
+        release = db.get(
+            Release,
+            release_id,
+        )
+
+        if release is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Release not found.",
+            )
+
+        release.promo_folder_url = (
+            promo_folder_url
+        )
+
+        db.commit()
+
+        params = urlencode(
+            {
+                "promo_asset_status": "success",
+                "promo_asset_message":
+                    "Dropbox promo folder saved.",
+            }
+        )
+
+        return RedirectResponse(
+            url=(
+                f"/workspace/releases/{release_id}"
+                f"/assets?{params}"
+            ),
+            status_code=303,
+        )
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()

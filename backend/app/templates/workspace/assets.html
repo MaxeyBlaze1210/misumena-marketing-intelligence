@@ -18,6 +18,56 @@
     </form>
 </div>
 
+<article
+    class="workspace-card"
+    style="margin-bottom:20px;"
+>
+    <h3>Dropbox promo folder</h3>
+
+    <form
+        method="post"
+        action="/workspace/releases/{{ release.id }}/assets/promo-folder"
+    >
+        <div style="
+            display:flex;
+            gap:10px;
+            align-items:center;
+            flex-wrap:wrap;
+        ">
+            <input
+                type="url"
+                name="promo_folder_url"
+                value="{{ release.promo_folder_url or '' }}"
+                placeholder="https://www.dropbox.com/..."
+                required
+                style="
+                    flex:1;
+                    min-width:280px;
+                    padding:9px 10px;
+                "
+            >
+
+            <button
+                type="submit"
+                class="primary-button"
+            >
+                Save
+            </button>
+        </div>
+    </form>
+
+    {% if release.promo_folder_url %}
+        <p class="asset-meta">
+            Promo folder configured.
+        </p>
+    {% else %}
+        <p class="asset-meta">
+            Add the Dropbox folder containing
+            this release's promo assets.
+        </p>
+    {% endif %}
+</article>
+
 {% if request.query_params.get("promo_asset_status") %}
     <div class="sync-banner
         {% if request.query_params.get("promo_asset_status") == "success" %}
