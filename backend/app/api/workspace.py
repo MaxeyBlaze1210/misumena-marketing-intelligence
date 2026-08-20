@@ -316,6 +316,43 @@ def release_promotion(
             .one_or_none()
         )
 
+        if campaign_plan is None:
+            from app.services.landing_url_service import (
+                build_release_landing_url,
+            )
+
+            default_audience = (
+                meta_audiences[0]
+                if meta_audiences
+                else None
+            )
+
+            if default_audience is not None:
+                campaign_plan = MetaCampaignPlan(
+                    release_id=release.id,
+                    meta_audience_id=
+                        default_audience.id,
+                    objective="OUTCOME_SALES",
+                    optimization_goal=
+                        "OFFSITE_CONVERSIONS",
+                    conversion_event="ViewContent",
+                    meta_pixel_id=
+                        settings.meta_pixel_id,
+                    destination_url=
+                        build_release_landing_url(
+                            release
+                        ),
+                    call_to_action="LISTEN_NOW",
+                    status="draft",
+                    age_min=18,
+                    age_max=64,
+                    campaign_type="interest",
+                )
+
+                db.add(campaign_plan)
+                db.commit()
+                db.refresh(campaign_plan)
+
         # --------------------------------------------------
         # Campaign variants
         # --------------------------------------------------
