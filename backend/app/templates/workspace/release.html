@@ -1,29 +1,156 @@
 {% extends "workspace/base.html" %}
 
 {% block content %}
-    <h2>Release</h2>
 
-    <div class="workspace-card">
-        <dl class="release-details">
-            <div>
-                <dt>Title</dt>
-                <dd>{{ release.title }}</dd>
-            </div>
+<h2>Release</h2>
 
-            <div>
-                <dt>Artist</dt>
-                <dd>{{ release.artist }}</dd>
-            </div>
-
-            <div>
-                <dt>Release date</dt>
-                <dd>{{ release.release_date }}</dd>
-            </div>
-
-            <div>
-                <dt>Landing-page slug</dt>
-                <dd>{{ release.landing_slug or "Missing" }}</dd>
-            </div>
-        </dl>
+{% if request.query_params.get("release_status") == "success" %}
+    <div class="sync-banner sync-banner-ok">
+        {{ request.query_params.get("release_message", "") }}
     </div>
+{% endif %}
+
+<div class="workspace-card">
+
+    <dl class="release-details">
+        <div>
+            <dt>Title</dt>
+            <dd>{{ release.title }}</dd>
+        </div>
+
+        <div>
+            <dt>Artist</dt>
+            <dd>{{ release.artist }}</dd>
+        </div>
+
+        <div>
+            <dt>Release date</dt>
+            <dd>{{ release.release_date }}</dd>
+        </div>
+
+        <div>
+            <dt>Landing-page slug</dt>
+            <dd>
+                {{ release.landing_slug or "Missing" }}
+            </dd>
+        </div>
+    </dl>
+
+</div>
+
+
+<div
+    class="workspace-card"
+    style="margin-top:20px;"
+>
+    <h3>Landing page</h3>
+
+    <form
+        method="post"
+        action="/workspace/releases/{{ release.id }}/release/landing"
+    >
+
+        <div style="
+            display:grid;
+            gap:16px;
+            max-width:760px;
+        ">
+
+            <label>
+                Landing slug
+
+                <input
+                    type="text"
+                    name="landing_slug"
+                    value="{{ release.landing_slug or '' }}"
+                    placeholder="mashallo"
+                    style="width:100%;"
+                >
+            </label>
+
+            <label>
+                Spotify
+
+                <input
+                    type="url"
+                    name="spotify_url"
+                    value="{{ release.spotify_url or '' }}"
+                    placeholder="https://open.spotify.com/..."
+                    style="width:100%;"
+                >
+            </label>
+
+            <label>
+                Apple Music
+
+                <input
+                    type="url"
+                    name="apple_music_url"
+                    value="{{ release.apple_music_url or '' }}"
+                    placeholder="https://music.apple.com/..."
+                    style="width:100%;"
+                >
+            </label>
+
+            <label>
+                YouTube
+
+                <input
+                    type="url"
+                    name="youtube_url"
+                    value="{{ release.youtube_url or '' }}"
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    style="width:100%;"
+                >
+            </label>
+
+            <label>
+                Bandcamp
+
+                <input
+                    type="url"
+                    name="bandcamp_url"
+                    value="{{ release.bandcamp_url or '' }}"
+                    placeholder="https://..."
+                    style="width:100%;"
+                >
+            </label>
+
+            <label>
+                Description
+
+                <textarea
+                    name="landing_description"
+                    rows="3"
+                    placeholder="Optional short description"
+                    style="width:100%;"
+                >{{ release.landing_description or '' }}</textarea>
+            </label>
+
+            <div>
+                <button
+                    type="submit"
+                    class="primary-button"
+                >
+                    Save landing page
+                </button>
+            </div>
+
+        </div>
+
+    </form>
+
+    {% if release.landing_slug %}
+        <p style="margin-top:18px;">
+            <a
+                href="/r/{{ release.landing_slug }}"
+                target="_blank"
+            >
+                Open public landing page ↗
+            </a>
+        </p>
+    {% endif %}
+
+</div>
+
 {% endblock %}

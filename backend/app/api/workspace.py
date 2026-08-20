@@ -3545,3 +3545,107 @@ def save_promo_folder(
 
     finally:
         db.close()
+
+
+@router.post(
+    "/releases/{release_id}/release/landing"
+)
+def save_release_landing_settings(
+    release_id: int,
+    landing_slug: str = Form(""),
+    landing_description: str = Form(""),
+    spotify_url: str = Form(""),
+    apple_music_url: str = Form(""),
+    youtube_url: str = Form(""),
+    bandcamp_url: str = Form(""),
+):
+    db = SessionLocal()
+
+    try:
+        release = db.get(
+            Release,
+            release_id,
+        )
+
+        if release is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Release not found.",
+            )
+
+        landing_slug = (
+            landing_slug.strip().lower()
+        )
+
+        if landing_slug:
+            existing = (
+                db.query(Release)
+                .filter(
+                    Release.landing_slug
+                    == landing_slug,
+                    Release.id != release_id,
+                )
+                .one_or_none()
+            )
+
+            if existing is not None:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "Landing-page slug is already in use."
+                    ),
+                )
+
+        release.landing_slug = (
+            landing_slug or None
+        )
+
+        release.landing_description = (
+            landing_description.strip()
+            or None
+        )
+
+        release.spotify_url = (
+            spotify_url.strip()
+            or None
+        )
+
+        release.apple_music_url = (
+            apple_music_url.strip()
+            or None
+        )
+
+        release.youtube_url = (
+            youtube_url.strip()
+            or None
+        )
+
+        release.bandcamp_url = (
+            bandcamp_url.strip()
+            or None
+        )
+
+        db.commit()
+
+        params = urlencode(
+            {
+                "release_status": "success",
+                "release_message":
+                    "Landing-page settings saved.",
+            }
+        )
+
+        return RedirectResponse(
+            url=(
+                f"/workspace/releases/{release_id}"
+                f"/release?{params}"
+            ),
+            status_code=303,
+        )
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
