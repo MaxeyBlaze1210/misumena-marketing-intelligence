@@ -353,6 +353,33 @@ def release_promotion(
                 db.commit()
                 db.refresh(campaign_plan)
 
+                variants = [
+                    MetaCampaignVariant(
+                        meta_campaign_plan_id=
+                            campaign_plan.id,
+                        name="Control",
+                        campaign_type="interest",
+                        role="control",
+                    ),
+                    MetaCampaignVariant(
+                        meta_campaign_plan_id=
+                            campaign_plan.id,
+                        name="Not selected",
+                        campaign_type="interest",
+                        role="comparator_1",
+                    ),
+                    MetaCampaignVariant(
+                        meta_campaign_plan_id=
+                            campaign_plan.id,
+                        name="Not selected",
+                        campaign_type="interest",
+                        role="comparator_2",
+                    ),
+                ]
+
+                db.add_all(variants)
+                db.commit()
+
         # --------------------------------------------------
         # Campaign variants
         # --------------------------------------------------
