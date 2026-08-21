@@ -8,3 +8,6 @@ secrets/gmail_token.json
 .DS_Store
 *.backup
 *.backup_*
+
+secrets/youtube_client_secret.json
+secrets/youtube_token.json
