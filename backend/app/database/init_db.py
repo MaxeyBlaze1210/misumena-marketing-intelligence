@@ -43,6 +43,7 @@ from app.models.meta_adset_metric import MetaAdSetMetric
 from app.models.country import Country
 from app.models.country_preset import CountryPreset
 from app.models.country_preset_country import CountryPresetCountry
+from app.models.meta_campaign_plan_country import MetaCampaignPlanCountry
 
 # Promo / Contacts
 from app.models.contact import Contact

@@ -570,34 +570,154 @@
                 <dt>Countries</dt>
                 <dd>
 
-                    {% if selected_country_preset %}
+                    <div style="
+                        display:flex;
+                        flex-direction:column;
+                        gap:12px;
+                    ">
 
-                        <details class="country-details">
+                        <form
+                            method="post"
+                            onsubmit="
+                                this.action =
+                                '/workspace/releases/{{ release.id }}/promotion/countries/preset/'
+                                + this.country_preset_id.value;
+                            "
+                        >
+                            <div style="
+                                display:flex;
+                                gap:8px;
+                                align-items:center;
+                                flex-wrap:wrap;
+                            ">
 
-                            <summary>
-                                {{ selected_country_preset.name }}
-                                ({{ selected_country_count }} countries)
-                            </summary>
+                                <select
+                                    name="country_preset_id"
+                                >
+                                    <option value="">
+                                        Select preset
+                                    </option>
 
-                            {% if selected_countries %}
+                                    {% for preset in country_presets %}
+                                        <option
+                                            value="{{ preset.id }}"
+                                            {% if selected_country_preset and selected_country_preset.id == preset.id %}
+                                                selected
+                                            {% endif %}
+                                        >
+                                            {{ preset.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
 
-                                <ul class="country-list">
+                                <button type="submit">
+                                    Apply preset
+                                </button>
+
+                            </div>
+                        </form>
+
+
+                        <form
+                            method="post"
+                            onsubmit="
+                                this.action =
+                                '/workspace/releases/{{ release.id }}/promotion/countries/add/'
+                                + this.country_id.value;
+                            "
+                        >
+                            <div style="
+                                display:flex;
+                                gap:8px;
+                                align-items:center;
+                                flex-wrap:wrap;
+                            ">
+
+                                <select
+                                    name="country_id"
+                                >
+                                    <option value="">
+                                        Add country
+                                    </option>
+
+                                    {% for country in all_countries %}
+                                        <option
+                                            value="{{ country.id }}"
+                                        >
+                                            {{ country.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+
+                                <button type="submit">
+                                    Add
+                                </button>
+
+                            </div>
+                        </form>
+
+
+                        {% if selected_countries %}
+
+                            <details
+                                class="country-details"
+                                open
+                            >
+                                <summary>
+                                    {{ selected_country_count }}
+                                    selected countries
+                                </summary>
+
+                                <div style="
+                                    display:flex;
+                                    flex-direction:column;
+                                    gap:6px;
+                                    margin-top:10px;
+                                ">
 
                                     {% for country in selected_countries %}
-                                        <li>{{ country.name }}</li>
+
+                                        <div style="
+                                            display:flex;
+                                            gap:8px;
+                                            align-items:center;
+                                            justify-content:space-between;
+                                            max-width:340px;
+                                        ">
+
+                                            <span>
+                                                {{ country.name }}
+                                            </span>
+
+                                            <form
+                                                method="post"
+                                                action="/workspace/releases/{{ release.id }}/promotion/countries/remove/{{ country.id }}"
+                                            >
+                                                <button
+                                                    type="submit"
+                                                    class="secondary-button"
+                                                >
+                                                    Remove
+                                                </button>
+                                            </form>
+
+                                        </div>
+
                                     {% endfor %}
 
-                                </ul>
+                                </div>
 
-                            {% endif %}
+                            </details>
 
-                        </details>
+                        {% else %}
 
-                    {% else %}
+                            <span>
+                                No countries selected.
+                            </span>
 
-                        Not selected
+                        {% endif %}
 
-                    {% endif %}
+                    </div>
 
                 </dd>
             </div>

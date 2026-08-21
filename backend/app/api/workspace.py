@@ -17,6 +17,7 @@ from app.models.meta_campaign_plan import MetaCampaignPlan
 from app.models.meta_interest import MetaInterest
 from app.models.country_preset import CountryPreset
 from app.models.country_preset_country import CountryPresetCountry
+from app.models.meta_campaign_plan_country import MetaCampaignPlanCountry
 from app.models.country import Country
 from app.models.meta_campaign_variant import MetaCampaignVariant
 from app.models.asset import Asset
@@ -505,43 +506,47 @@ def release_promotion(
         selected_country_count = 0
         selected_countries = []
 
-        if (
-            campaign_plan is not None
-            and campaign_plan.country_preset_id
-        ):
-            selected_country_preset = (
-                db.query(CountryPreset)
-                .filter(
-                    CountryPreset.id
-                    == campaign_plan.country_preset_id
-                )
-                .one_or_none()
-            )
+        country_presets = (
+            db.query(CountryPreset)
+            .order_by(CountryPreset.name)
+            .all()
+        )
 
-            selected_country_count = (
-                db.query(CountryPresetCountry)
-                .filter(
-                    CountryPresetCountry.country_preset_id
-                    == campaign_plan.country_preset_id
+        all_countries = (
+            db.query(Country)
+            .order_by(Country.name)
+            .all()
+        )
+
+        if campaign_plan is not None:
+
+            if campaign_plan.country_preset_id:
+                selected_country_preset = (
+                    db.query(CountryPreset)
+                    .filter(
+                        CountryPreset.id
+                        == campaign_plan.country_preset_id
+                    )
+                    .one_or_none()
                 )
-                .count()
-            )
 
             selected_countries = (
                 db.query(Country)
                 .join(
-                    CountryPresetCountry,
+                    MetaCampaignPlanCountry,
                     Country.id
-                    == CountryPresetCountry.country_id,
+                    == MetaCampaignPlanCountry.country_id,
                 )
                 .filter(
-                    CountryPresetCountry.country_preset_id
-                    == campaign_plan.country_preset_id
+                    MetaCampaignPlanCountry.meta_campaign_plan_id
+                    == campaign_plan.id
                 )
-                .order_by(
-                    Country.name
-                )
+                .order_by(Country.name)
                 .all()
+            )
+
+            selected_country_count = len(
+                selected_countries
             )
 
         # --------------------------------------------------
@@ -856,6 +861,12 @@ def release_promotion(
 
                 "selected_countries":
                     selected_countries,
+
+                "country_presets":
+                    country_presets,
+
+                "all_countries":
+                    all_countries,
 
                 "short_form_creatives":
                     short_form_creatives,

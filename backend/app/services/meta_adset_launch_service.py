@@ -5,8 +5,8 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.models.asset import Asset
 from app.models.country import Country
-from app.models.country_preset_country import (
-    CountryPresetCountry,
+from app.models.meta_campaign_plan_country import (
+    MetaCampaignPlanCountry,
 )
 from app.models.meta_campaign_cell import (
     MetaCampaignCell,
@@ -81,13 +81,13 @@ def build_targeting(
         for row in (
             db.query(Country)
             .join(
-                CountryPresetCountry,
-                CountryPresetCountry.country_id
+                MetaCampaignPlanCountry,
+                MetaCampaignPlanCountry.country_id
                 == Country.id,
             )
             .filter(
-                CountryPresetCountry.country_preset_id
-                == plan.country_preset_id
+                MetaCampaignPlanCountry.meta_campaign_plan_id
+                == plan.id
             )
             .order_by(
                 Country.iso_code

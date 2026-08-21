@@ -26,6 +26,14 @@ from app.models.meta_interest import MetaInterest
 from app.models.asset import Asset
 from app.models.meta_campaign_plan_asset import MetaCampaignPlanAsset
 from app.models.meta_campaign_cell import MetaCampaignCell
+from app.models.country import Country
+from app.models.country_preset import CountryPreset
+from app.models.country_preset_country import (
+    CountryPresetCountry,
+)
+from app.models.meta_campaign_plan_country import (
+    MetaCampaignPlanCountry,
+)
 
 router = APIRouter(
     prefix="/workspace",
@@ -1128,6 +1136,202 @@ def set_campaign_status(
         )
 
         campaign_plan.status = status
+
+        db.commit()
+
+        return promotion_redirect(
+            release_id
+        )
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
+# ---------------------------------------------------------
+# Countries
+# ---------------------------------------------------------
+
+@router.post(
+    "/releases/{release_id}/promotion/"
+    "countries/preset/{country_preset_id}"
+)
+def apply_country_preset(
+    release_id: int,
+    country_preset_id: int,
+):
+    db = SessionLocal()
+
+    try:
+        campaign_plan = get_campaign_plan(
+            db,
+            release_id,
+        )
+
+        preset = (
+            db.query(CountryPreset)
+            .filter(
+                CountryPreset.id
+                == country_preset_id
+            )
+            .one_or_none()
+        )
+
+        if preset is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Country preset not found.",
+            )
+
+        preset_links = (
+            db.query(CountryPresetCountry)
+            .filter(
+                CountryPresetCountry.country_preset_id
+                == preset.id
+            )
+            .all()
+        )
+
+        # Applying a preset resets the release-specific
+        # country selection to exactly that preset.
+        db.query(
+            MetaCampaignPlanCountry
+        ).filter(
+            MetaCampaignPlanCountry.meta_campaign_plan_id
+            == campaign_plan.id
+        ).delete(
+            synchronize_session=False
+        )
+
+        for link in preset_links:
+            db.add(
+                MetaCampaignPlanCountry(
+                    meta_campaign_plan_id=
+                        campaign_plan.id,
+                    country_id=
+                        link.country_id,
+                )
+            )
+
+        campaign_plan.country_preset_id = (
+            preset.id
+        )
+
+        campaign_plan.country_preset = (
+            preset.name
+        )
+
+        db.commit()
+
+        return promotion_redirect(
+            release_id
+        )
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
+@router.post(
+    "/releases/{release_id}/promotion/"
+    "countries/add/{country_id}"
+)
+def add_campaign_country(
+    release_id: int,
+    country_id: int,
+):
+    db = SessionLocal()
+
+    try:
+        campaign_plan = get_campaign_plan(
+            db,
+            release_id,
+        )
+
+        country = (
+            db.query(Country)
+            .filter(
+                Country.id == country_id
+            )
+            .one_or_none()
+        )
+
+        if country is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Country not found.",
+            )
+
+        existing = (
+            db.query(MetaCampaignPlanCountry)
+            .filter(
+                MetaCampaignPlanCountry.meta_campaign_plan_id
+                    == campaign_plan.id,
+                MetaCampaignPlanCountry.country_id
+                    == country.id,
+            )
+            .one_or_none()
+        )
+
+        if existing is None:
+            db.add(
+                MetaCampaignPlanCountry(
+                    meta_campaign_plan_id=
+                        campaign_plan.id,
+                    country_id=
+                        country.id,
+                )
+            )
+
+        db.commit()
+
+        return promotion_redirect(
+            release_id
+        )
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
+@router.post(
+    "/releases/{release_id}/promotion/"
+    "countries/remove/{country_id}"
+)
+def remove_campaign_country(
+    release_id: int,
+    country_id: int,
+):
+    db = SessionLocal()
+
+    try:
+        campaign_plan = get_campaign_plan(
+            db,
+            release_id,
+        )
+
+        link = (
+            db.query(MetaCampaignPlanCountry)
+            .filter(
+                MetaCampaignPlanCountry.meta_campaign_plan_id
+                    == campaign_plan.id,
+                MetaCampaignPlanCountry.country_id
+                    == country_id,
+            )
+            .one_or_none()
+        )
+
+        if link is not None:
+            db.delete(link)
 
         db.commit()
 
