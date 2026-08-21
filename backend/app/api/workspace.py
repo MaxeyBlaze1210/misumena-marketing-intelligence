@@ -50,11 +50,34 @@ from app.services.meta_execution_apply_service import (
 )
 
 
-workspace_security = HTTPBasic()
+workspace_security = HTTPBasic(
+    auto_error=False
+)
+
+
+def get_workspace_session_token() -> str:
+    import hashlib
+    import hmac
+
+    username = settings.workspace_username
+    password = settings.workspace_password
+
+    if not username or not password:
+        return ""
+
+    return hmac.new(
+        password.encode("utf-8"),
+        (
+            "mmi-workspace-session:"
+            + username
+        ).encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
 
 
 def require_workspace_auth(
-    credentials: HTTPBasicCredentials = Depends(
+    request: Request,
+    credentials: HTTPBasicCredentials | None = Depends(
         workspace_security
     ),
 ):
@@ -67,23 +90,46 @@ def require_workspace_auth(
             detail="Workspace authentication is not configured.",
         )
 
-    username_ok = secrets.compare_digest(
-        credentials.username.encode("utf-8"),
-        username.encode("utf-8"),
-    )
-    password_ok = secrets.compare_digest(
-        credentials.password.encode("utf-8"),
-        password.encode("utf-8"),
+    expected_session = (
+        get_workspace_session_token()
     )
 
-    if not (username_ok and password_ok):
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid workspace credentials.",
-            headers={
-                "WWW-Authenticate": "Basic",
-            },
+    supplied_session = request.cookies.get(
+        "mmi_workspace_session"
+    )
+
+    if (
+        supplied_session
+        and expected_session
+        and secrets.compare_digest(
+            supplied_session,
+            expected_session,
         )
+    ):
+        return
+
+    if credentials is not None:
+        username_ok = secrets.compare_digest(
+            credentials.username.encode("utf-8"),
+            username.encode("utf-8"),
+        )
+
+        password_ok = secrets.compare_digest(
+            credentials.password.encode("utf-8"),
+            password.encode("utf-8"),
+        )
+
+        if username_ok and password_ok:
+            request.state.set_workspace_cookie = True
+            return
+
+    raise HTTPException(
+        status_code=401,
+        detail="Invalid workspace credentials.",
+        headers={
+            "WWW-Authenticate": "Basic",
+        },
+    )
 
 
 router = APIRouter(

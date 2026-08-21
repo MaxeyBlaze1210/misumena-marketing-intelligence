@@ -16,6 +16,11 @@ from app.api import promo_tracking
 from app.api import campaign_builder
 
 
+from app.api.workspace import (
+    get_workspace_session_token,
+)
+
+
 app = FastAPI(
     title="Misumena Marketing Intelligence",
     version="0.1",
@@ -31,6 +36,33 @@ app.mount(
 
 # Create database tables
 init_db()
+
+
+@app.middleware("http")
+async def workspace_session_cookie_middleware(
+    request,
+    call_next,
+):
+    response = await call_next(request)
+
+    if getattr(
+        request.state,
+        "set_workspace_cookie",
+        False,
+    ):
+        token = get_workspace_session_token()
+
+        if token:
+            response.set_cookie(
+                key="mmi_workspace_session",
+                value=token,
+                httponly=True,
+                secure=True,
+                samesite="lax",
+                max_age=60 * 60 * 24 * 30,
+            )
+
+    return response
 
 
 # Register API routes
