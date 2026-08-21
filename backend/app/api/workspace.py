@@ -717,13 +717,21 @@ def release_promotion(
                         campaign_plan.call_to_action
                     )
                     and bool(
-                        campaign_plan.meta_campaign_record_id
+                        campaign_plan.meta_pixel_id
+                    )
+                    and bool(
+                        campaign_plan.country_preset_id
+                    )
+                    and bool(
+                        campaign_plan.total_budget
+                    )
+                    and bool(
+                        campaign_plan.start_date
+                    )
+                    and bool(
+                        campaign_plan.end_date
                     )
                     and bool(attached_cells)
-                    and (
-                        ad_sets_ready
-                        == len(attached_cells)
-                    )
                 ),
             }
 

@@ -2,6 +2,12 @@ from urllib.parse import urlencode
 from app.services.meta_ad_launch_service import (
     launch_all_ads_for_plan,
 )
+from app.services.meta_campaign_launch_service import (
+    launch_or_reconcile_campaign,
+)
+from app.services.meta_adset_launch_service import (
+    launch_all_planned_adsets,
+)
 from datetime import date
 from decimal import Decimal
 
@@ -945,30 +951,114 @@ def build_meta_campaign_ads(
             release_id,
         )
 
-        result = launch_all_ads_for_plan(
+        cells = (
+            db.query(MetaCampaignCell)
+            .filter(
+                MetaCampaignCell.meta_campaign_plan_id
+                == campaign_plan.id,
+                MetaCampaignCell.status
+                != "detached",
+            )
+            .all()
+        )
+
+        if not cells:
+            raise RuntimeError(
+                "Campaign plan has no campaign cells."
+            )
+
+        if campaign_plan.country_preset_id is None:
+            raise RuntimeError(
+                "Countries must be selected before building."
+            )
+
+        if campaign_plan.total_budget is None:
+            raise RuntimeError(
+                "Total campaign budget is required."
+            )
+
+        if (
+            campaign_plan.start_date is None
+            or campaign_plan.end_date is None
+        ):
+            raise RuntimeError(
+                "Campaign start and end dates are required."
+            )
+
+        campaign_days = (
+            campaign_plan.end_date
+            - campaign_plan.start_date
+        ).days + 1
+
+        if campaign_days <= 0:
+            raise RuntimeError(
+                "Campaign schedule is invalid."
+            )
+
+        total_budget = float(
+            campaign_plan.total_budget
+        )
+
+        daily_budget = (
+            total_budget
+            / campaign_days
+            / len(cells)
+        )
+
+        if daily_budget <= 0:
+            raise RuntimeError(
+                "Calculated ad-set daily budget is invalid."
+            )
+
+        # 1. One managed Meta campaign, always PAUSED.
+        campaign_result = (
+            launch_or_reconcile_campaign(
+                db,
+                release_id,
+            )
+        )
+
+        db.commit()
+
+        # 2. One PAUSED ad set for every campaign cell.
+        adset_result = (
+            launch_all_planned_adsets(
+                db,
+                campaign_plan.id,
+                daily_budget=daily_budget,
+            )
+        )
+
+        # 3. Upload/reuse videos and creatives and create
+        #    every Meta Ad PAUSED.
+        ad_result = launch_all_ads_for_plan(
             db,
             campaign_plan.id,
         )
 
         status = (
             "success"
-            if result["failed"] == 0
+            if ad_result["failed"] == 0
             else "error"
         )
 
         message = (
-            f"{result['created']} created, "
-            f"{result['reconciled']} reconciled, "
-            f"{result['skipped']} skipped, "
-            f"{result['failed']} failed."
+            f"Campaign {campaign_result['action']}; "
+            f"ad sets: "
+            f"{adset_result['created']} created, "
+            f"{adset_result['reconciled']} reconciled; "
+            f"ads: "
+            f"{ad_result['created']} created, "
+            f"{ad_result['reconciled']} reconciled, "
+            f"{ad_result['failed']} failed. "
+            f"Daily budget per ad set: "
+            f"€{daily_budget:.2f}."
         )
 
         params = urlencode(
             {
-                "meta_build_status":
-                    status,
-                "meta_build_message":
-                    message,
+                "meta_build_status": status,
+                "meta_build_message": message,
             }
         )
 
@@ -986,10 +1076,8 @@ def build_meta_campaign_ads(
 
         params = urlencode(
             {
-                "meta_build_status":
-                    "error",
-                "meta_build_message":
-                    str(exc),
+                "meta_build_status": "error",
+                "meta_build_message": str(exc),
             }
         )
 
