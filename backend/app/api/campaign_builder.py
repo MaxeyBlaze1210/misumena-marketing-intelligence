@@ -1004,3 +1004,52 @@ def build_meta_campaign_ads(
 
     finally:
         db.close()
+
+
+# ---------------------------------------------------------
+# Campaign status
+# ---------------------------------------------------------
+
+@router.post(
+    "/releases/{release_id}/promotion/status"
+)
+def set_campaign_status(
+    release_id: int,
+    status: str = Form(...),
+):
+    allowed = {
+        "draft",
+        "ready",
+        "live",
+        "paused",
+        "completed",
+    }
+
+    if status not in allowed:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid campaign status.",
+        )
+
+    db = SessionLocal()
+
+    try:
+        campaign_plan = get_campaign_plan(
+            db,
+            release_id,
+        )
+
+        campaign_plan.status = status
+
+        db.commit()
+
+        return promotion_redirect(
+            release_id
+        )
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
