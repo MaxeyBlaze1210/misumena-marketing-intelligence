@@ -782,3 +782,95 @@ def get_ad(
     return handle_meta_response(
         response
     )
+
+
+def get_campaign(
+    campaign_id: str,
+) -> dict:
+    """
+    Read back one Meta campaign.
+    """
+
+    url = (
+        f"https://graph.facebook.com/"
+        f"{settings.meta_api_version}/"
+        f"{campaign_id}"
+    )
+
+    response = requests.get(
+        url,
+        params={
+            "fields": (
+                "id,"
+                "name,"
+                "status,"
+                "effective_status,"
+                "objective"
+            ),
+        },
+        headers={
+            "Authorization":
+                f"Bearer {settings.meta_access_token}",
+        },
+        timeout=30,
+    )
+
+    return handle_meta_response(
+        response
+    )
+
+
+def update_campaign_status(
+    campaign_id: str,
+    status: str,
+) -> dict:
+    """
+    Update a Meta campaign's configured status.
+
+    Deliberately restricted to ACTIVE/PAUSED.
+    """
+
+    status = status.upper()
+
+    if status not in {
+        "ACTIVE",
+        "PAUSED",
+    }:
+        raise ValueError(
+            "Campaign status must be ACTIVE or PAUSED."
+        )
+
+    return meta_post(
+        str(campaign_id),
+        {
+            "status": status,
+        },
+    )
+
+
+def update_ad_status(
+    ad_id: str,
+    status: str,
+) -> dict:
+    """
+    Update a Meta Ad's configured status.
+
+    Deliberately restricted to ACTIVE/PAUSED.
+    """
+
+    status = status.upper()
+
+    if status not in {
+        "ACTIVE",
+        "PAUSED",
+    }:
+        raise ValueError(
+            "Ad status must be ACTIVE or PAUSED."
+        )
+
+    return meta_post(
+        str(ad_id),
+        {
+            "status": status,
+        },
+    )
