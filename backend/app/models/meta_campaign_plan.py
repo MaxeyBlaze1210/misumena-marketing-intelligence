@@ -78,6 +78,13 @@ class MetaCampaignPlan(Base):
         Numeric(10, 2),
     )
 
+    # Total Stage-1 screening budget allowed per
+    # creative × audience cell across the exploration period.
+    stage_1_cell_budget = Column(
+        Numeric(10, 2),
+        nullable=True,
+    )
+
     status = Column(
         String,
         nullable=False,

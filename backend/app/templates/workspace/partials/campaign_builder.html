@@ -812,6 +812,49 @@
 
 
             <div>
+                <dt>Stage-1 screening budget</dt>
+                <dd>
+
+                    <form
+                        method="post"
+                        action="/workspace/releases/{{ release.id }}/promotion/stage-1-budget"
+                        class="campaign-setting-form"
+                    >
+
+                        <div class="campaign-setting-row">
+
+                            <label>
+                                € per cell
+
+                                <input
+                                    type="number"
+                                    name="stage_1_cell_budget"
+                                    min="0.01"
+                                    step="0.01"
+                                    value="{% if campaign_plan.stage_1_cell_budget %}{{ campaign_plan.stage_1_cell_budget }}{% endif %}"
+                                    placeholder="e.g. 5"
+                                    required
+                                >
+                            </label>
+
+                            <button type="submit">
+                                Save
+                            </button>
+
+                        </div>
+
+                        <small>
+                            Total screening budget per creative × audience cell
+                            across the initial exploration period.
+                        </small>
+
+                    </form>
+
+                </dd>
+            </div>
+
+
+            <div>
                 <dt>Schedule</dt>
                 <dd>
 

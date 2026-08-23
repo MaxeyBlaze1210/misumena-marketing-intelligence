@@ -731,6 +731,9 @@ def release_promotion(
                         campaign_plan.total_budget
                     )
                     and bool(
+                        campaign_plan.stage_1_cell_budget
+                    )
+                    and bool(
                         campaign_plan.start_date
                     )
                     and bool(

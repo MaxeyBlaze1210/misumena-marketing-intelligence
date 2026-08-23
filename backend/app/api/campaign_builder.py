@@ -15,6 +15,7 @@ from fastapi import APIRouter, Form, HTTPException
 from fastapi.responses import RedirectResponse
 
 from app.database.database import SessionLocal
+from app.intelligence.rules import META_RULES
 from app.services.landing_url_service import build_release_landing_url
 from app.models.meta_audience import MetaAudience
 from app.models.meta_campaign_plan import MetaCampaignPlan
@@ -643,6 +644,49 @@ def set_budget(
 
 
 # ---------------------------------------------------------
+# Stage-1 screening budget
+# ---------------------------------------------------------
+
+@router.post(
+    "/releases/{release_id}/promotion/stage-1-budget"
+)
+def set_stage_1_budget(
+    release_id: int,
+    stage_1_cell_budget: Decimal = Form(...),
+):
+    if stage_1_cell_budget <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Stage-1 cell budget must be greater than zero.",
+        )
+
+    db = SessionLocal()
+
+    try:
+        campaign_plan = get_campaign_plan(
+            db,
+            release_id,
+        )
+
+        campaign_plan.stage_1_cell_budget = (
+            stage_1_cell_budget
+        )
+
+        db.commit()
+
+        return promotion_redirect(
+            release_id
+        )
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
+# ---------------------------------------------------------
 # Schedule
 # ---------------------------------------------------------
 
@@ -1007,15 +1051,46 @@ def build_meta_campaign_ads(
             campaign_plan.total_budget
         )
 
+        if campaign_plan.stage_1_cell_budget is None:
+            raise RuntimeError(
+                "Stage-1 budget per cell is required."
+            )
+
+        stage_1_cell_budget = float(
+            campaign_plan.stage_1_cell_budget
+        )
+
+        exploration_days = META_RULES[
+            "exploration_days"
+        ]
+
+        if exploration_days <= 0:
+            raise RuntimeError(
+                "Exploration duration is invalid."
+            )
+
+        stage_1_total = (
+            stage_1_cell_budget
+            * len(cells)
+        )
+
+        if stage_1_total > total_budget:
+            raise RuntimeError(
+                "Stage-1 screening budget exceeds "
+                "the total campaign budget."
+            )
+
+        # Meta requires a daily ad-set budget.
+        # stage_1_cell_budget is the total screening
+        # allowance per cell across the exploration period.
         daily_budget = (
-            total_budget
-            / campaign_days
-            / len(cells)
+            stage_1_cell_budget
+            / exploration_days
         )
 
         if daily_budget <= 0:
             raise RuntimeError(
-                "Calculated ad-set daily budget is invalid."
+                "Calculated Stage-1 daily budget is invalid."
             )
 
         # 1. One managed Meta campaign, always PAUSED.
@@ -1059,7 +1134,10 @@ def build_meta_campaign_ads(
             f"{ad_result['created']} created, "
             f"{ad_result['reconciled']} reconciled, "
             f"{ad_result['failed']} failed. "
-            f"Daily budget per ad set: "
+            f"Stage-1 budget: "
+            f"€{stage_1_cell_budget:.2f} per cell "
+            f"across {exploration_days} days; "
+            f"Meta daily budget per ad set: "
             f"€{daily_budget:.2f}."
         )
 
