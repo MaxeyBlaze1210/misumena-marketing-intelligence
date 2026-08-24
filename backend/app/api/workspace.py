@@ -1393,6 +1393,15 @@ def release_analytics(
         # Creative intelligence: organic × paid
         # --------------------------------------------------
 
+        campaign_plan = (
+            db.query(MetaCampaignPlan)
+            .filter(
+                MetaCampaignPlan.release_id
+                == release_id
+            )
+            .one_or_none()
+        )
+
         from app.models.asset import Asset
         from app.models.meta_campaign_cell import MetaCampaignCell
         from app.models.organic_asset_metric import OrganicAssetMetric
