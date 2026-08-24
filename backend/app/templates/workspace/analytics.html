@@ -302,6 +302,125 @@
         </div>
 
 
+        {% if creative_intelligence %}
+
+        <h4>Creative intelligence — organic × paid</h4>
+
+        <p style="
+            color:#777;
+            font-size:13px;
+        ">
+            Latest observed organic Instagram engagement
+            compared with cumulative paid performance through
+            {{ meta_checkpoint_label }}.
+        </p>
+
+        <div style="overflow-x:auto;">
+            <table style="
+                width:100%;
+                border-collapse:collapse;
+                min-width:900px;
+            ">
+                <thead>
+                    <tr>
+                        <th style="text-align:left;padding:10px;">
+                            Creative
+                        </th>
+                        <th style="text-align:left;padding:10px;">
+                            Organic Instagram
+                        </th>
+                        <th style="text-align:left;padding:10px;">
+                            Paid performance
+                        </th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for item in creative_intelligence %}
+                    <tr>
+                        <td style="
+                            padding:10px;
+                            vertical-align:top;
+                            border-top:1px solid #eee;
+                            font-weight:600;
+                        ">
+                            {{ item.asset.name }}
+                        </td>
+
+                        <td style="
+                            padding:10px;
+                            vertical-align:top;
+                            border-top:1px solid #eee;
+                            line-height:1.6;
+                        ">
+                            <strong>
+                                {{ item.organic.likes or 0 }} likes
+                            </strong>
+                            <br>
+
+                            {{ item.organic.views or 0 }} views
+                            <br>
+
+                            {% if item.organic_like_rate is not none %}
+                                {{ "%.2f"|format(item.organic_like_rate) }}%
+                                like rate
+                            {% else %}
+                                — like rate
+                            {% endif %}
+
+                            {% if item.organic.post_url %}
+                                <br>
+                                <a
+                                    href="{{ item.organic.post_url }}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    Instagram post
+                                </a>
+                            {% endif %}
+                        </td>
+
+                        <td style="
+                            padding:10px;
+                            vertical-align:top;
+                            border-top:1px solid #eee;
+                            line-height:1.6;
+                        ">
+                            <strong>
+                                {% if item.paid.cost_per_result is not none %}
+                                    €{{ "%.3f"|format(item.paid.cost_per_result) }}
+                                    CPR
+                                {% else %}
+                                    — CPR
+                                {% endif %}
+                            </strong>
+                            <br>
+
+                            €{{ "%.2f"|format(item.paid.spend) }} spend
+                            <br>
+
+                            {{ item.paid.results }} results
+                            <br>
+
+                            {{ item.paid.impressions }} impressions
+                            <br>
+
+                            {% if item.paid_result_rate is not none %}
+                                {{ "%.2f"|format(item.paid_result_rate) }}%
+                                result rate
+                            {% else %}
+                                — result rate
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% endif %}
+
+
         <h4>Early engagement</h4>
 
         <p style="

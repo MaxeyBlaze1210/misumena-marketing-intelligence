@@ -1390,6 +1390,120 @@ def release_analytics(
         ]
 
         # --------------------------------------------------
+        # Creative intelligence: organic × paid
+        # --------------------------------------------------
+
+        from app.models.asset import Asset
+        from app.models.meta_campaign_cell import MetaCampaignCell
+        from app.models.organic_asset_metric import OrganicAssetMetric
+
+        creative_intelligence = []
+
+        campaign_cells = (
+            db.query(MetaCampaignCell)
+            .filter(
+                MetaCampaignCell.meta_campaign_plan_id
+                == campaign_plan.id
+            )
+            .all()
+            if campaign_plan
+            else []
+        )
+
+        asset_ids = {
+            cell.asset_id
+            for cell in campaign_cells
+        }
+
+        for asset_id in asset_ids:
+            asset = db.get(Asset, asset_id)
+
+            if asset is None:
+                continue
+
+            organic = (
+                db.query(OrganicAssetMetric)
+                .filter(
+                    OrganicAssetMetric.asset_id
+                    == asset_id,
+                    OrganicAssetMetric.platform
+                    == "instagram",
+                )
+                .order_by(
+                    OrganicAssetMetric.observed_at.desc()
+                )
+                .first()
+            )
+
+            if organic is None:
+                continue
+
+            cell_adset_ids = {
+                cell.meta_adset_id
+                for cell in campaign_cells
+                if (
+                    cell.asset_id == asset_id
+                    and cell.meta_adset_id
+                )
+            }
+
+            paid = empty_metrics()
+
+            for campaign, ad, metric in included_rows:
+                if ad.meta_adset_id in cell_adset_ids:
+                    add_metric(
+                        paid,
+                        metric,
+                    )
+
+            finish_metrics(paid)
+
+            organic_like_rate = (
+                (
+                    (organic.likes or 0)
+                    / organic.views
+                )
+                * 100
+                if organic.views
+                else None
+            )
+
+            paid_result_rate = (
+                (
+                    paid["results"]
+                    / paid["impressions"]
+                )
+                * 100
+                if paid["impressions"] > 0
+                else None
+            )
+
+            creative_intelligence.append(
+                {
+                    "asset":
+                        asset,
+
+                    "organic":
+                        organic,
+
+                    "organic_like_rate":
+                        organic_like_rate,
+
+                    "paid":
+                        paid,
+
+                    "paid_result_rate":
+                        paid_result_rate,
+                }
+            )
+
+        creative_intelligence.sort(
+            key=lambda item: creative_sort_key(
+                item["asset"].name
+            )
+        )
+
+        # --------------------------------------------------
         # YouTube analytics for this release
         # --------------------------------------------------
 
@@ -1613,6 +1727,9 @@ def release_analytics(
 
                 "meta_creative_matrix":
                     meta_creative_matrix,
+
+                "creative_intelligence":
+                    creative_intelligence,
 
                 "youtube_analytics":
                     youtube_analytics,

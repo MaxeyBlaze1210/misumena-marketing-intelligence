@@ -54,6 +54,7 @@ from app.models.landing_event import LandingEvent
 
 # Assets
 from app.models.asset import Asset
+from app.models.organic_asset_metric import OrganicAssetMetric
 from app.models.meta_campaign_plan_asset import (
     MetaCampaignPlanAsset,
 )
