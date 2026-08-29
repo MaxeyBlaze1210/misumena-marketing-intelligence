@@ -50,6 +50,14 @@ from app.services.meta_execution_apply_service import (
     apply_execution_plan,
 )
 
+from app.services.meta_service import (
+    update_adset_daily_budget,
+)
+
+from app.services.meta_adset_launch_service import (
+    read_meta_adset,
+)
+
 
 workspace_security = HTTPBasic(
     auto_error=False
@@ -620,6 +628,9 @@ def release_promotion(
         # --------------------------------------------------
 
         meta_build_readiness = None
+        live_meta_cells = []
+        live_meta_daily_budget = None
+        live_meta_budgets_match = True
 
         if campaign_plan is not None:
 
@@ -685,6 +696,100 @@ def release_promotion(
                         )
                     )
                     .count()
+                )
+
+            # ----------------------------------------------
+            # Live Meta delivery
+            #
+            # These are the campaign cells that survived
+            # screening and currently represent live delivery.
+            # Budget values are operational Meta settings,
+            # separate from the historical screening budget.
+            # ----------------------------------------------
+
+            live_meta_cells = []
+
+            variants_by_id = {
+                variant.id: variant
+                for variant in campaign_variants
+            }
+
+            assets_by_id = {
+                asset.id: asset
+                for asset in (
+                    db.query(Asset)
+                    .filter(
+                        Asset.id.in_(
+                            [
+                                cell.asset_id
+                                for cell in attached_cells
+                            ]
+                        )
+                    )
+                    .all()
+                    if attached_cells
+                    else []
+                )
+            }
+
+            for cell in attached_cells:
+                if (
+                    cell.status == "stage_1_winner"
+                    and cell.meta_adset_id
+                ):
+                    variant = variants_by_id.get(
+                        cell.meta_campaign_variant_id
+                    )
+                    asset = assets_by_id.get(
+                        cell.asset_id
+                    )
+
+                    meta_adset = read_meta_adset(
+                        str(cell.meta_adset_id)
+                    )
+
+                    daily_budget_eur = (
+                        float(
+                            meta_adset["daily_budget"]
+                        )
+                        / 100.0
+                    )
+
+                    live_meta_cells.append({
+                        "cell_id": cell.id,
+                        "adset_id": str(
+                            cell.meta_adset_id
+                        ),
+                        "variant_name": (
+                            variant.name
+                            if variant
+                            else "Unknown targeting arm"
+                        ),
+                        "asset_name": (
+                            asset.name
+                            if asset
+                            else "Unknown creative"
+                        ),
+                        "daily_budget_eur":
+                            daily_budget_eur,
+                    })
+
+            if live_meta_cells:
+                live_budgets = [
+                    cell["daily_budget_eur"]
+                    for cell in live_meta_cells
+                ]
+
+                live_meta_daily_budget = (
+                    live_budgets[0]
+                )
+
+                live_meta_budgets_match = all(
+                    abs(
+                        budget
+                        - live_meta_daily_budget
+                    ) < 0.001
+                    for budget in live_budgets
                 )
 
             meta_build_readiness = {
@@ -895,6 +1000,25 @@ def release_promotion(
                 "meta_build_readiness":
                     meta_build_readiness,
 
+                "live_meta_cells":
+                    live_meta_cells,
+
+                "live_meta_daily_budget":
+                    live_meta_daily_budget,
+
+                "live_meta_budgets_match":
+                    live_meta_budgets_match,
+
+                "live_budget_status":
+                    request.query_params.get(
+                        "live_budget_status"
+                    ),
+
+                "live_budget_message":
+                    request.query_params.get(
+                        "live_budget_message"
+                    ),
+
                 "meta_build_status":
                     request.query_params.get(
                         "meta_build_status"
@@ -984,6 +1108,90 @@ def refresh_analytics(
         url=(
             f"/workspace/releases/{release_id}"
             f"/analytics?{params}"
+        ),
+        status_code=303,
+    )
+
+
+@router.post(
+    "/releases/{release_id}/promotion/meta/live-budget"
+)
+def update_live_meta_budget(
+    release_id: int,
+    daily_budget_eur: float = Form(...),
+):
+    db = SessionLocal()
+
+    try:
+        if daily_budget_eur <= 0:
+            raise ValueError(
+                "Daily budget must be greater than zero."
+            )
+
+        campaign_plan = (
+            db.query(MetaCampaignPlan)
+            .filter(
+                MetaCampaignPlan.release_id
+                == release_id
+            )
+            .first()
+        )
+
+        if campaign_plan is None:
+            raise ValueError(
+                "No Meta campaign plan found."
+            )
+
+        live_cells = (
+            db.query(MetaCampaignCell)
+            .filter(
+                MetaCampaignCell.meta_campaign_plan_id
+                == campaign_plan.id,
+                MetaCampaignCell.status
+                == "stage_1_winner",
+                MetaCampaignCell.meta_adset_id.isnot(None),
+            )
+            .all()
+        )
+
+        if not live_cells:
+            raise ValueError(
+                "No active Meta campaign cells found."
+            )
+
+        for cell in live_cells:
+            update_adset_daily_budget(
+                str(cell.meta_adset_id),
+                float(daily_budget_eur),
+            )
+
+        total_daily_budget = (
+            float(daily_budget_eur)
+            * len(live_cells)
+        )
+
+        params = urlencode({
+            "live_budget_status": "success",
+            "live_budget_message": (
+                f"Updated {len(live_cells)} active ad sets "
+                f"to €{daily_budget_eur:.2f}/day each "
+                f"(€{total_daily_budget:.2f}/day total)."
+            ),
+        })
+
+    except Exception as exc:
+        params = urlencode({
+            "live_budget_status": "error",
+            "live_budget_message": str(exc),
+        })
+
+    finally:
+        db.close()
+
+    return RedirectResponse(
+        url=(
+            f"/workspace/releases/{release_id}"
+            f"/promotion?{params}"
         ),
         status_code=303,
     )

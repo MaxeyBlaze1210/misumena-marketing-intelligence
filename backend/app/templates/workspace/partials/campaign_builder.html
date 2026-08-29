@@ -363,6 +363,168 @@
 
                 {% endif %}
 
+                {% if live_meta_cells %}
+
+                    <div style="
+                        margin:20px 0;
+                        padding:16px;
+                        border:1px solid #ddd;
+                        border-radius:8px;
+                        max-width:720px;
+                    ">
+
+                        <div class="campaigns-label">
+                            Live Meta delivery
+                        </div>
+
+                        <div style="
+                            display:grid;
+                            gap:6px;
+                            margin:12px 0 16px 0;
+                        ">
+                            {% for cell in live_meta_cells %}
+                                <div>
+                                    <strong>
+                                        {{ cell.variant_name }}
+                                    </strong>
+                                    —
+                                    {{ cell.asset_name }}
+                                    —
+                                    €{{ "%.2f" | format(
+                                        cell.daily_budget_eur
+                                    ) }}/day
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        {% if live_budget_message %}
+                            <div style="
+                                margin-bottom:14px;
+                                padding:10px;
+                                border:1px solid #ddd;
+                                border-radius:8px;
+                            ">
+                                <strong>
+                                    {{ live_budget_message }}
+                                </strong>
+                            </div>
+                        {% endif %}
+
+                        <form
+                            method="post"
+                            action="/workspace/releases/{{ release.id }}/promotion/meta/live-budget"
+                        >
+                            <label
+                                for="live-meta-daily-budget"
+                                style="
+                                    display:block;
+                                    margin-bottom:6px;
+                                "
+                            >
+                                Daily budget per active ad set
+                            </label>
+
+                            <div style="
+                                display:flex;
+                                gap:10px;
+                                align-items:center;
+                                flex-wrap:wrap;
+                            ">
+                                <input
+                                    id="live-meta-daily-budget"
+                                    name="daily_budget_eur"
+                                    type="number"
+                                    min="0.01"
+                                    step="0.01"
+                                    value="{{ "%.2f" | format(
+                                        live_meta_daily_budget
+                                    ) }}"
+                                    required
+                                    style="width:110px;"
+                                >
+
+                                <span>€ / day</span>
+
+                                <button type="submit">
+                                    Apply budget
+                                </button>
+                            </div>
+
+                            <div
+                                id="live-meta-budget-total"
+                                style="
+                                    margin-top:10px;
+                                    font-size:0.95em;
+                                "
+                            >
+                                {{ live_meta_cells | length }}
+                                {% if live_meta_budgets_match %}
+                                    {{ live_meta_cells | length }}
+                                    active ad sets
+                                    × €{{ "%.2f" | format(
+                                        live_meta_daily_budget
+                                    ) }}
+                                    =
+                                    €{{ "%.2f" | format(
+                                        (live_meta_cells | length)
+                                        * live_meta_daily_budget
+                                    ) }}/day total
+                                {% else %}
+                                    Active ad sets currently have
+                                    different daily budgets.
+                                    Entering a value above will apply
+                                    the same budget to all of them.
+                                {% endif %}
+                            </div>
+                        </form>
+
+                    </div>
+
+                    <script>
+                    (function () {
+                        const input =
+                            document.getElementById(
+                                "live-meta-daily-budget"
+                            );
+
+                        const total =
+                            document.getElementById(
+                                "live-meta-budget-total"
+                            );
+
+                        if (!input || !total) {
+                            return;
+                        }
+
+                        const count =
+                            {{ live_meta_cells | length }};
+
+                        function updateTotal() {
+                            const budget =
+                                Number(input.value);
+
+                            if (!Number.isFinite(budget)) {
+                                return;
+                            }
+
+                            total.textContent =
+                                count
+                                + " active ad sets × €"
+                                + budget.toFixed(2)
+                                + " = €"
+                                + (count * budget).toFixed(2)
+                                + "/day total";
+                        }
+
+                        input.addEventListener(
+                            "input",
+                            updateTotal
+                        );
+                    })();
+                    </script>
+
+                {% endif %}
+
                 {% if meta_build_readiness.missing_copy %}
 
                     <div style="
