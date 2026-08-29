@@ -1265,7 +1265,70 @@ def release_analytics(
 
         # --------------------------------------------------
         # Arm summaries + creative × arm matrix
+        #
+        # Audience arms come from MetaCampaignVariant rather
+        # than the Meta campaign name. MetaCampaignCell is the
+        # canonical creative × targeting-arm mapping.
         # --------------------------------------------------
+
+        from app.models.asset import Asset
+        from app.models.meta_campaign_cell import MetaCampaignCell
+        from app.models.meta_campaign_variant import MetaCampaignVariant
+
+        campaign_plan = (
+            db.query(MetaCampaignPlan)
+            .filter(
+                MetaCampaignPlan.release_id == release_id
+            )
+            .one_or_none()
+        )
+
+        campaign_cells = (
+            db.query(MetaCampaignCell)
+            .filter(
+                MetaCampaignCell.meta_campaign_plan_id
+                == campaign_plan.id
+            )
+            .all()
+            if campaign_plan
+            else []
+        )
+
+        cells_by_adset = {
+            cell.meta_adset_id: cell
+            for cell in campaign_cells
+            if cell.meta_adset_id
+        }
+
+        variants = {
+            variant.id: variant
+            for variant in (
+                db.query(MetaCampaignVariant)
+                .filter(
+                    MetaCampaignVariant.meta_campaign_plan_id
+                    == campaign_plan.id
+                )
+                .all()
+                if campaign_plan
+                else []
+            )
+        }
+
+        assets = {
+            asset.id: asset
+            for asset in (
+                db.query(Asset)
+                .filter(
+                    Asset.id.in_({
+                        cell.asset_id
+                        for cell in campaign_cells
+                    })
+                )
+                .all()
+                if campaign_cells
+                else []
+            )
+        }
 
         arm_data = {}
         matrix_data = {}
@@ -1273,17 +1336,36 @@ def release_analytics(
 
         for campaign, ad, metric in included_rows:
 
-            arm = arm_name(
-                campaign.name
+            campaign_cell = cells_by_adset.get(
+                ad.meta_adset_id
             )
 
-            creative = creative_name(
-                ad.name
-            )
+            if campaign_cell is not None:
+                variant = variants.get(
+                    campaign_cell.meta_campaign_variant_id
+                )
+                asset = assets.get(
+                    campaign_cell.asset_id
+                )
 
-            creative_names.add(
-                creative
-            )
+                arm = (
+                    variant.name
+                    if variant is not None
+                    else arm_name(campaign.name)
+                )
+
+                creative = (
+                    creative_name(asset.name)
+                    if asset is not None
+                    else creative_name(ad.name)
+                )
+            else:
+                # Backwards-compatible fallback for campaigns
+                # that do not yet have campaign-cell mappings.
+                arm = arm_name(campaign.name)
+                creative = creative_name(ad.name)
+
+            creative_names.add(creative)
 
             arm_metrics = arm_data.setdefault(
                 arm,
@@ -1300,13 +1382,13 @@ def release_analytics(
                 arm,
             )
 
-            cell = matrix_data.setdefault(
+            cell_metrics = matrix_data.setdefault(
                 key,
                 empty_metrics(),
             )
 
             add_metric(
-                cell,
+                cell_metrics,
                 metric,
             )
 
@@ -1316,21 +1398,22 @@ def release_analytics(
         for item in matrix_data.values():
             finish_metrics(item)
 
-        # Preserve intuitive targeting order where
-        # possible, while remaining generic.
-        preferred_arm_order = {
-            "Broad": 0,
-            "Afrobeat": 1,
-            "African popular music": 2,
+        # Preserve the variant order configured for the
+        # campaign. Any fallback/unmapped arms are appended.
+        variant_arm_order = {
+            variant.name: index
+            for index, variant in enumerate(
+                sorted(
+                    variants.values(),
+                    key=lambda item: item.id,
+                )
+            )
         }
 
         meta_arms = sorted(
             arm_data.keys(),
             key=lambda name: (
-                preferred_arm_order.get(
-                    name,
-                    100,
-                ),
+                variant_arm_order.get(name, 1000),
                 name.lower(),
             ),
         )
