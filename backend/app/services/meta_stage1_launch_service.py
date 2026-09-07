@@ -1,4 +1,5 @@
-from datetime import date
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
 
@@ -57,7 +58,9 @@ def start_stage_1(
             "Campaign has no end date."
         )
 
-    today = date.today()
+    today = datetime.now(
+        ZoneInfo("Europe/Berlin")
+    ).date()
 
     if today < plan.start_date:
         raise RuntimeError(
