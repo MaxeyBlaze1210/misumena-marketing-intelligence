@@ -12,7 +12,10 @@
 
 <div class="workspace-card">
 
-    <dl class="release-details">
+    <dl
+        class="release-details"
+        id="release-details-view"
+    >
         <div>
             <dt>Title</dt>
             <dd>{{ release.title }}</dd>
@@ -35,6 +38,99 @@
             </dd>
         </div>
     </dl>
+
+    <div
+        id="release-details-actions"
+        style="margin-top:16px;"
+    >
+        <button
+            type="button"
+            onclick="
+                document.getElementById(
+                    'release-details-view'
+                ).style.display='none';
+                document.getElementById(
+                    'release-details-actions'
+                ).style.display='none';
+                document.getElementById(
+                    'release-details-edit'
+                ).style.display='block';
+            "
+        >
+            Edit release
+        </button>
+    </div>
+
+    <form
+        id="release-details-edit"
+        method="post"
+        action="/workspace/releases/{{ release.id }}/release/details"
+        style="display:none; margin-top:16px;"
+    >
+        <div style="
+            display:grid;
+            gap:16px;
+            max-width:760px;
+        ">
+            <label>
+                Title
+                <input
+                    type="text"
+                    name="title"
+                    value="{{ release.title }}"
+                    required
+                    style="width:100%;"
+                >
+            </label>
+
+            <label>
+                Artist
+                <input
+                    type="text"
+                    name="artist"
+                    value="{{ release.artist }}"
+                    required
+                    style="width:100%;"
+                >
+            </label>
+
+            <label>
+                Release date
+                <input
+                    type="date"
+                    name="release_date"
+                    value="{{ release.release_date }}"
+                    required
+                >
+            </label>
+
+            <div>
+                <button
+                    type="submit"
+                    class="primary-button"
+                >
+                    Save
+                </button>
+
+                <button
+                    type="button"
+                    onclick="
+                        document.getElementById(
+                            'release-details-edit'
+                        ).style.display='none';
+                        document.getElementById(
+                            'release-details-view'
+                        ).style.display='';
+                        document.getElementById(
+                            'release-details-actions'
+                        ).style.display='block';
+                    "
+                >
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </form>
 
 </div>
 

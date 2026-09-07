@@ -3501,6 +3501,183 @@ def send_release_promo_email(
 
 
 @router.post(
+    "/releases/{release_id}/assets/artwork-link"
+)
+async def update_release_artwork_link_workspace(
+    release_id: int,
+    request: Request,
+):
+    form = await request.form()
+    artwork_url = (
+        form.get("artwork_url") or ""
+    ).strip()
+
+    db = SessionLocal()
+    try:
+        release = db.get(
+            Release,
+            release_id,
+        )
+        if release is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Release not found.",
+            )
+
+        release.artwork_url = artwork_url or None
+        db.commit()
+
+        params = urlencode(
+            {
+                "promo_asset_status": "success",
+                "promo_asset_message":
+                    "Artwork link updated.",
+            }
+        )
+        return RedirectResponse(
+            url=(
+                f"/workspace/releases/"
+                f"{release_id}/assets?{params}"
+            ),
+            status_code=303,
+        )
+    finally:
+        db.close()
+
+
+@router.post(
+    "/releases/{release_id}/assets/manual-link"
+)
+async def update_release_manual_asset_link_workspace(
+    release_id: int,
+    request: Request,
+):
+    form = await request.form()
+
+    asset_type = (
+        form.get("asset_type") or ""
+    ).strip()
+
+    source_url = (
+        form.get("source_url") or ""
+    ).strip()
+
+    asset_id_raw = (
+        form.get("asset_id") or ""
+    ).strip()
+
+    allowed_types = {
+        "music_video",
+        "promo_audio",
+        "short_form_video",
+    }
+
+    if asset_type not in allowed_types:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid asset type.",
+        )
+
+    db = SessionLocal()
+    try:
+        release = db.get(
+            Release,
+            release_id,
+        )
+        if release is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Release not found.",
+            )
+
+        asset = None
+
+        if asset_id_raw:
+            try:
+                asset_id = int(asset_id_raw)
+            except ValueError:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid asset ID.",
+                )
+
+            asset = (
+                db.query(Asset)
+                .filter(
+                    Asset.id == asset_id,
+                    Asset.release_id == release_id,
+                    Asset.asset_type == asset_type,
+                )
+                .one_or_none()
+            )
+
+            if asset is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Asset not found.",
+                )
+
+        elif asset_type in {
+            "music_video",
+            "promo_audio",
+        }:
+            asset = (
+                db.query(Asset)
+                .filter(
+                    Asset.release_id == release_id,
+                    Asset.asset_type == asset_type,
+                )
+                .first()
+            )
+
+        if asset is None:
+            if not source_url:
+                raise HTTPException(
+                    status_code=400,
+                    detail="A link is required.",
+                )
+
+            default_names = {
+                "music_video": "Music video",
+                "promo_audio": "Audio master",
+                "short_form_video": "Short-form creative",
+            }
+
+            asset = Asset(
+                release_id=release_id,
+                name=default_names[asset_type],
+                asset_type=asset_type,
+                source="manual",
+                source_url=source_url,
+            )
+            db.add(asset)
+        else:
+            asset.source_url = source_url or None
+            if source_url:
+                asset.source = "manual"
+
+        db.commit()
+
+        params = urlencode(
+            {
+                "promo_asset_status": "success",
+                "promo_asset_message":
+                    "Asset link updated.",
+            }
+        )
+
+        return RedirectResponse(
+            url=(
+                f"/workspace/releases/"
+                f"{release_id}/assets?{params}"
+            ),
+            status_code=303,
+        )
+    finally:
+        db.close()
+
+
+@router.post(
     "/releases/{release_id}/assets/sync-promo"
 )
 def sync_release_promo_assets_workspace(
@@ -4084,6 +4261,85 @@ def save_promo_folder(
             url=(
                 f"/workspace/releases/{release_id}"
                 f"/assets?{params}"
+            ),
+            status_code=303,
+        )
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
+@router.post(
+    "/releases/{release_id}/release/details"
+)
+def save_release_details(
+    release_id: int,
+    title: str = Form(...),
+    artist: str = Form(...),
+    release_date: str = Form(...),
+):
+    title = title.strip()
+    artist = artist.strip()
+    release_date = release_date.strip()
+
+    if not title:
+        raise HTTPException(
+            status_code=400,
+            detail="Title is required.",
+        )
+
+    if not artist:
+        raise HTTPException(
+            status_code=400,
+            detail="Artist is required.",
+        )
+
+    try:
+        release_date_value = date.fromisoformat(
+            release_date
+        )
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid release date.",
+        )
+
+    db = SessionLocal()
+
+    try:
+        release = db.get(
+            Release,
+            release_id,
+        )
+
+        if release is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Release not found.",
+            )
+
+        release.title = title
+        release.artist = artist
+        release.release_date = release_date_value
+
+        db.commit()
+
+        params = urlencode(
+            {
+                "release_status": "success",
+                "release_message":
+                    "Release details updated.",
+            }
+        )
+
+        return RedirectResponse(
+            url=(
+                f"/workspace/releases/"
+                f"{release_id}/release?{params}"
             ),
             status_code=303,
         )
