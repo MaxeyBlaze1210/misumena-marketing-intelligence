@@ -389,6 +389,17 @@ def launch_or_reconcile_ad(
 
         steps["creative"] = "created"
 
+    # Persist the shared Instagram identity for this
+    # campaign-plan creative. The same Meta creative can be
+    # reused across multiple audience cells.
+    link.meta_effective_object_story_id = (
+        creative.get("effective_object_story_id")
+    )
+    link.instagram_permalink_url = (
+        creative.get("instagram_permalink_url")
+    )
+    db.flush()
+
     # -----------------------------------------------------
     # Meta Ad
     # -----------------------------------------------------

@@ -673,6 +673,22 @@
                                 {% set creative_link =
                                     selected_creative_links.get(asset.id) %}
 
+                                {% if creative_link.instagram_permalink_url %}
+                                    <div style="
+                                        margin-top:6px;
+                                        padding-left:24px;
+                                        font-size:13px;
+                                    ">
+                                        <a
+                                            href="{{ creative_link.instagram_permalink_url }}"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            View Instagram ad
+                                        </a>
+                                    </div>
+                                {% endif %}
+
                                 <form
                                     method="post"
                                     action="/workspace/releases/{{ release.id }}/promotion/creative/{{ asset.id }}/copy"

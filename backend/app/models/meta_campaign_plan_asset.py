@@ -44,6 +44,17 @@ class MetaCampaignPlanAsset(Base):
         index=True,
     )
 
+    meta_effective_object_story_id = Column(
+        String,
+        nullable=True,
+        index=True,
+    )
+
+    instagram_permalink_url = Column(
+        Text,
+        nullable=True,
+    )
+
     campaign_plan = relationship(
         "MetaCampaignPlan",
     )

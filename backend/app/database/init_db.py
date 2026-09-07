@@ -65,6 +65,27 @@ def init_db():
         bind=engine
     )
 
+    if engine.dialect.name == "sqlite":
+        with engine.begin() as connection:
+            columns = {
+                row[1]
+                for row in connection.exec_driver_sql(
+                    "PRAGMA table_info(meta_campaign_plan_assets)"
+                )
+            }
+
+            if "meta_effective_object_story_id" not in columns:
+                connection.exec_driver_sql(
+                    "ALTER TABLE meta_campaign_plan_assets "
+                    "ADD COLUMN meta_effective_object_story_id VARCHAR"
+                )
+
+            if "instagram_permalink_url" not in columns:
+                connection.exec_driver_sql(
+                    "ALTER TABLE meta_campaign_plan_assets "
+                    "ADD COLUMN instagram_permalink_url TEXT"
+                )
+
 
 if __name__ == "__main__":
     init_db()

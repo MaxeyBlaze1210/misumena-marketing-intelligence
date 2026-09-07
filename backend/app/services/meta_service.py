@@ -677,7 +677,9 @@ def get_ad_creative(
                 "body,"
                 "object_story_spec,"
                 "call_to_action_type,"
-                "video_id"
+                "video_id,"
+                "effective_object_story_id,"
+                "instagram_permalink_url"
             ),
         },
         headers={
