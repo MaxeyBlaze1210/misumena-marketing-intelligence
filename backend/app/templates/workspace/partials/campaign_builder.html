@@ -561,6 +561,54 @@
                     This action does not start spending.
                 </p>
 
+                <div style="
+                    margin-top:18px;
+                    padding-top:16px;
+                    border-top:1px solid #ddd;
+                ">
+                    <div style="
+                        font-weight:600;
+                        margin-bottom:8px;
+                    ">
+                        Stage 1
+                    </div>
+
+                    <div style="
+                        display:flex;
+                        gap:8px;
+                        flex-wrap:wrap;
+                    ">
+                        <form
+                            method="post"
+                            action="/workspace/releases/{{ release.id }}/promotion/stage-1-preflight"
+                        >
+                            <button type="submit">
+                                Run Stage-1 preflight
+                            </button>
+                        </form>
+
+                        <form
+                            method="post"
+                            action="/workspace/releases/{{ release.id }}/promotion/stage-1-start"
+                            onsubmit="return confirm('Start Stage 1 in Meta? This will activate the managed campaign cells and can begin spending.');"
+                        >
+                            <button type="submit">
+                                Start Stage 1
+                            </button>
+                        </form>
+                    </div>
+
+                    <p style="
+                        margin-top:10px;
+                        font-size:13px;
+                        color:#777;
+                    ">
+                        Preflight makes no Meta changes.
+                        Start Stage 1 repeats all safety checks
+                        before activating the campaign.
+                    </p>
+                </div>
+
             {% endif %}
 
         </div>

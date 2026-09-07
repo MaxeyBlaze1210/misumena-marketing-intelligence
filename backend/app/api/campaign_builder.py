@@ -5,6 +5,9 @@ from app.services.meta_ad_launch_service import (
 from app.services.meta_campaign_launch_service import (
     launch_or_reconcile_campaign,
 )
+from app.services.meta_stage1_launch_service import (
+    start_stage_1,
+)
 from app.services.meta_adset_launch_service import (
     launch_all_planned_adsets,
 )
@@ -91,9 +94,15 @@ ECO_CONSCIOUS_AFRICAN_MUSIC = {
 
 def promotion_redirect(
     release_id: int,
+    params: dict | None = None,
 ) -> RedirectResponse:
+    url = f"/workspace/releases/{release_id}/promotion"
+
+    if params:
+        url = f"{url}?{urlencode(params)}"
+
     return RedirectResponse(
-        url=f"/workspace/releases/{release_id}/promotion",
+        url=url,
         status_code=303,
     )
 
@@ -1176,6 +1185,103 @@ def build_meta_campaign_ads(
             status_code=303,
         )
 
+    finally:
+        db.close()
+
+
+# ---------------------------------------------------------
+# Stage-1 preflight / launch
+# ---------------------------------------------------------
+
+@router.post(
+    "/releases/{release_id}/promotion/stage-1-preflight"
+)
+def stage_1_preflight(
+    release_id: int,
+):
+    db = SessionLocal()
+    try:
+        campaign_plan = get_campaign_plan(
+            db,
+            release_id,
+        )
+        result = start_stage_1(
+            db,
+            campaign_plan.id,
+            preflight_only=True,
+        )
+        message = (
+            "Stage-1 preflight OK: "
+            f"{result['cells']} cells; "
+            f"€{result['daily_budget_per_cell']:.2f}/day per cell; "
+            f"€{result['stage_1_cell_budget']:.2f} per cell total; "
+            f"€{result['maximum_stage_1_spend']:.2f} maximum Stage-1 spend; "
+            "0 Meta writes."
+        )
+        return promotion_redirect(
+            release_id,
+            {
+                "meta_build_status": "success",
+                "meta_build_message": message,
+            },
+        )
+    except Exception as exc:
+        return promotion_redirect(
+            release_id,
+            {
+                "meta_build_status": "error",
+                "meta_build_message": (
+                    "Stage-1 preflight failed: "
+                    + str(exc)
+                ),
+            },
+        )
+    finally:
+        db.close()
+
+
+@router.post(
+    "/releases/{release_id}/promotion/stage-1-start"
+)
+def stage_1_start(
+    release_id: int,
+):
+    db = SessionLocal()
+    try:
+        campaign_plan = get_campaign_plan(
+            db,
+            release_id,
+        )
+        result = start_stage_1(
+            db,
+            campaign_plan.id,
+            preflight_only=False,
+        )
+        message = (
+            "Stage 1 started: "
+            f"{result['cells']} cells ACTIVE; "
+            f"€{result['daily_budget_per_cell']:.2f}/day per cell; "
+            f"€{result['maximum_stage_1_spend']:.2f} maximum Stage-1 spend."
+        )
+        return promotion_redirect(
+            release_id,
+            {
+                "meta_build_status": "success",
+                "meta_build_message": message,
+            },
+        )
+    except Exception as exc:
+        db.rollback()
+        return promotion_redirect(
+            release_id,
+            {
+                "meta_build_status": "error",
+                "meta_build_message": (
+                    "Stage-1 launch failed: "
+                    + str(exc)
+                ),
+            },
+        )
     finally:
         db.close()
 
