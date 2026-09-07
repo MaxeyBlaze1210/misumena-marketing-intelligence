@@ -3690,9 +3690,16 @@ def sync_release_promo_assets_workspace(
     db = SessionLocal()
 
     try:
-        release = get_release_or_404(
-            release_id
+        release = db.get(
+            Release,
+            release_id,
         )
+
+        if release is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Release not found.",
+            )
 
         if not release.promo_folder_url:
             params = urlencode(
