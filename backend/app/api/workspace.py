@@ -1,5 +1,6 @@
-from datetime import date
+from datetime import date, datetime
 from urllib.parse import urlencode
+from zoneinfo import ZoneInfo
 import secrets
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
@@ -26,6 +27,9 @@ from app.models.meta_campaign_cell import MetaCampaignCell
 from app.models.meta_ad import MetaAd
 from app.models.meta_campaign import MetaCampaign
 from app.models.meta_ad_metric import MetaAdMetric
+from app.models.spotify_popularity_snapshot import (
+    SpotifyPopularitySnapshot,
+)
 from app.schemas.release import ReleaseCreate
 from app.services import release_service
 
@@ -1197,6 +1201,77 @@ def update_live_meta_budget(
     )
 
 
+@router.post(
+    "/releases/{release_id}/analytics/spotify-popularity"
+)
+def record_spotify_popularity(
+    release_id: int,
+    observed_at: date = Form(...),
+    track_popularity: int = Form(...),
+    track_streams: int | None = Form(None),
+    artist_popularity: int | None = Form(None),
+):
+    if not 0 <= track_popularity <= 100:
+        raise HTTPException(
+            status_code=400,
+            detail="Track popularity must be between 0 and 100.",
+        )
+
+    if (
+        artist_popularity is not None
+        and not 0 <= artist_popularity <= 100
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Artist popularity must be between 0 and 100.",
+        )
+
+    if track_streams is not None and track_streams < 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Track streams cannot be negative.",
+        )
+
+    db = SessionLocal()
+    try:
+        release = db.get(Release, release_id)
+        if not release:
+            raise HTTPException(
+                status_code=404,
+                detail="Release not found.",
+            )
+
+        snapshot = SpotifyPopularitySnapshot(
+            release_id=release_id,
+            observed_at=observed_at,
+            track_popularity=track_popularity,
+            track_streams=track_streams,
+            artist_popularity=artist_popularity,
+            source="SubmitHub",
+        )
+
+        db.add(snapshot)
+        db.commit()
+
+    finally:
+        db.close()
+
+    params = urlencode({
+        "popularity_status": "success",
+        "popularity_message": (
+            f"Spotify popularity recorded for {observed_at}."
+        ),
+    })
+
+    return RedirectResponse(
+        url=(
+            f"/workspace/releases/{release_id}"
+            f"/analytics?{params}"
+        ),
+        status_code=303,
+    )
+
+
 @router.get(
     "/releases/{release_id}/analytics"
 )
@@ -2006,6 +2081,19 @@ def release_analytics(
                     recommendations,
             }
 
+        spotify_popularity_snapshots = (
+            db.query(SpotifyPopularitySnapshot)
+            .filter(
+                SpotifyPopularitySnapshot.release_id
+                == release_id
+            )
+            .order_by(
+                SpotifyPopularitySnapshot.observed_at.desc(),
+                SpotifyPopularitySnapshot.id.desc(),
+            )
+            .all()
+        )
+
         return templates.TemplateResponse(
             request=request,
             name="workspace/analytics.html",
@@ -2015,6 +2103,10 @@ def release_analytics(
 
                 "active_tab":
                     "analytics",
+                "today":
+                    datetime.now(
+                        ZoneInfo("Europe/Berlin")
+                    ).date().isoformat(),
 
                 "meta_summary":
                     meta_summary,
@@ -2033,6 +2125,8 @@ def release_analytics(
 
                 "youtube_analytics":
                     youtube_analytics,
+                "spotify_popularity_snapshots":
+                    spotify_popularity_snapshots,
 
                 "meta_checkpoint_options":
                     checkpoint_options,

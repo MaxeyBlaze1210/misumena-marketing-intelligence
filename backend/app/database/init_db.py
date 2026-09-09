@@ -59,6 +59,12 @@ from app.models.meta_campaign_plan_asset import (
     MetaCampaignPlanAsset,
 )
 
+# Spotify popularity history
+
+from app.models.spotify_popularity_snapshot import (
+    SpotifyPopularitySnapshot,
+)
+
 
 def init_db():
     Base.metadata.create_all(
