@@ -420,6 +420,21 @@
                                     border-top:1px solid #eee;
                                 ">
                                     {% if cell %}
+                                        {% if cell.meta_status %}
+                                            <span style="
+                                                display:inline-block;
+                                                padding:3px 7px;
+                                                margin-bottom:6px;
+                                                border-radius:999px;
+                                                font-size:11px;
+                                                font-weight:700;
+                                                background:{% if cell.meta_status == 'ACTIVE' %}#e8f5e9{% elif cell.meta_status == 'PAUSED' %}#fff3e0{% else %}#eeeeee{% endif %};
+                                                color:{% if cell.meta_status == 'ACTIVE' %}#2e7d32{% elif cell.meta_status == 'PAUSED' %}#b26a00{% else %}#555555{% endif %};
+                                            ">
+                                                {{ cell.meta_status }}
+                                            </span>
+                                            <br>
+                                        {% endif %}
                                         <strong>
                                             {% if cell.cost_per_result is not none %}
                                                 €{{ "%.3f"|format(cell.cost_per_result) }}

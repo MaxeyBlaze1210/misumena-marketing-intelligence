@@ -25,6 +25,7 @@ from app.models.asset import Asset
 from app.models.meta_campaign_plan_asset import MetaCampaignPlanAsset
 from app.models.meta_campaign_cell import MetaCampaignCell
 from app.models.meta_ad import MetaAd
+from app.models.meta_adset import MetaAdSet
 from app.models.meta_campaign import MetaCampaign
 from app.models.meta_ad_metric import MetaAdMetric
 from app.models.spotify_popularity_snapshot import (
@@ -1617,6 +1618,29 @@ def release_analytics(
         matrix_data = {}
         creative_names = set()
 
+        meta_adset_ids = {
+            str(ad.meta_adset_id)
+            for _, ad, _ in included_rows
+            if ad.meta_adset_id
+        }
+
+        meta_adsets_by_id = (
+            {
+                str(adset.meta_adset_id): adset
+                for adset in (
+                    db.query(MetaAdSet)
+                    .filter(
+                        MetaAdSet.meta_adset_id.in_(
+                            meta_adset_ids
+                        )
+                    )
+                    .all()
+                )
+            }
+            if meta_adset_ids
+            else {}
+        )
+
         for campaign, ad, metric in included_rows:
 
             campaign_cell = cells_by_adset.get(
@@ -1674,6 +1698,31 @@ def release_analytics(
                 cell_metrics,
                 metric,
             )
+
+            meta_adset = (
+                meta_adsets_by_id.get(
+                    str(ad.meta_adset_id)
+                )
+                if ad.meta_adset_id
+                else None
+            )
+            meta_status = (
+                meta_adset.effective_status
+                if meta_adset is not None
+                else None
+            )
+
+            existing_meta_status = cell_metrics.get(
+                "meta_status"
+            )
+            if (
+                existing_meta_status
+                and meta_status
+                and existing_meta_status != meta_status
+            ):
+                cell_metrics["meta_status"] = "MIXED"
+            elif meta_status:
+                cell_metrics["meta_status"] = meta_status
 
         for item in arm_data.values():
             finish_metrics(item)
