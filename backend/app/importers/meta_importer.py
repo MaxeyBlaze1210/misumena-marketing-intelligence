@@ -2,11 +2,13 @@ from datetime import date
 
 from app.database.database import SessionLocal
 from app.models.meta_ad import MetaAd
+from app.models.meta_adset import MetaAdSet
 from app.models.meta_ad_metric import MetaAdMetric
 from app.models.meta_campaign import MetaCampaign
 from app.services.meta_service import (
     get_ad_insights,
     get_ads,
+    get_adsets,
     get_campaigns,
 )
 from app.database.init_db import init_db
@@ -35,6 +37,7 @@ def import_meta_campaign(
 
     try:
         campaigns_response = get_campaigns()
+        adsets_response = get_adsets(campaign_id)
         ads_response = get_ads(campaign_id)
         insights_response = get_ad_insights(campaign_id)
 
@@ -70,6 +73,38 @@ def import_meta_campaign(
         campaign.name = campaign_data["name"]
         campaign.status = campaign_data.get("status")
         campaign.objective = campaign_data.get("objective")
+
+        db.flush()
+
+        imported_adsets = 0
+
+        for adset_data in adsets_response.get("data", []):
+            meta_adset_id = adset_data["id"]
+
+            adset = (
+                db.query(MetaAdSet)
+                .filter(
+                    MetaAdSet.meta_adset_id
+                    == meta_adset_id
+                )
+                .one_or_none()
+            )
+
+            if adset is None:
+                adset = MetaAdSet(
+                    meta_adset_id=meta_adset_id,
+                    name=adset_data["name"],
+                )
+                db.add(adset)
+
+            adset.meta_campaign_id = campaign_id
+            adset.name = adset_data["name"]
+            adset.status = adset_data.get("status")
+            adset.effective_status = (
+                adset_data.get("effective_status")
+            )
+
+            imported_adsets += 1
 
         db.flush()
 
@@ -230,6 +265,7 @@ def import_meta_campaign(
         print(
             "Imported "
             f"1 campaign, "
+            f"{imported_adsets} ad sets, "
             f"{len(ads_by_meta_id)} ads, "
             f"{imported_metrics} metric rows."
         )
@@ -248,4 +284,4 @@ if __name__ == "__main__":
         release_id=RELEASE_ID,
     )
 
-    
+

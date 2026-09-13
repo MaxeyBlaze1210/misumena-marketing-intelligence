@@ -178,6 +178,41 @@ def get_ads(campaign_id: str):
 
     return handle_meta_response(response)   
 
+def get_adsets(campaign_id: str):
+    """
+    Fetch the campaign's current Meta ad-set state.
+    """
+    url = (
+        f"https://graph.facebook.com/"
+        f"{settings.meta_api_version}/"
+        f"{campaign_id}/adsets"
+    )
+
+    params = {
+        "fields": (
+            "id,"
+            "name,"
+            "status,"
+            "effective_status,"
+            "campaign{id,name}"
+        ),
+        "limit": 100,
+    }
+
+    headers = {
+        "Authorization": f"Bearer {settings.meta_access_token}",
+    }
+
+    response = requests.get(
+        url,
+        params=params,
+        headers=headers,
+        timeout=30,
+    )
+
+    return handle_meta_response(response)
+
+
 def get_ad_insights(campaign_id: str):
     url = (
         f"https://graph.facebook.com/"
