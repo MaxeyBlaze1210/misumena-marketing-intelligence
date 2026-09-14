@@ -2,7 +2,6 @@ from sqlalchemy.orm import Session
 
 from app.models.meta_campaign import MetaCampaign
 from app.models.meta_campaign_plan import MetaCampaignPlan
-from app.models.release import Release
 from app.services.meta_service import (
     create_paused_campaign,
     get_campaigns,
@@ -11,7 +10,8 @@ from app.services.meta_service import (
 
 def launch_or_reconcile_campaign(
     db: Session,
-    release_id: int,
+    release_id: int | None = None,
+    plan_id: int | None = None,
 ) -> dict:
     """
     Create the release's Meta campaign once, always PAUSED.
@@ -20,31 +20,67 @@ def launch_or_reconcile_campaign(
     reconcile it against Meta instead of creating another one.
     """
 
-    plan = (
-        db.query(MetaCampaignPlan)
-        .filter(
-            MetaCampaignPlan.release_id
-            == release_id
+    if plan_id is not None:
+        plan = (
+            db.query(MetaCampaignPlan)
+            .filter(
+                MetaCampaignPlan.id == plan_id
+            )
+            .one_or_none()
         )
-        .one_or_none()
-    )
+    elif release_id is not None:
+        plan = (
+            db.query(MetaCampaignPlan)
+            .filter(
+                MetaCampaignPlan.release_id
+                == release_id
+            )
+            .one_or_none()
+        )
+    else:
+        raise RuntimeError(
+            "Campaign plan identifier is required."
+        )
 
     if plan is None:
         raise RuntimeError(
             "Campaign plan not found."
         )
 
-    release = (
-        db.query(Release)
-        .filter(
-            Release.id == release_id
+    if (
+        plan.release_id is not None
+        and plan.playlist_id is not None
+    ):
+        raise RuntimeError(
+            "Campaign plan cannot belong to both "
+            "a release and a playlist."
         )
-        .one_or_none()
-    )
 
-    if release is None:
+    if (
+        plan.release_id is None
+        and plan.playlist_id is None
+    ):
+        raise RuntimeError(
+            "Campaign plan has no owner."
+        )
+
+    release = plan.release
+    playlist = plan.playlist
+
+    if (
+        plan.release_id is not None
+        and release is None
+    ):
         raise RuntimeError(
             "Release not found."
+        )
+
+    if (
+        plan.playlist_id is not None
+        and playlist is None
+    ):
+        raise RuntimeError(
+            "Playlist not found."
         )
 
     existing = (
@@ -126,14 +162,22 @@ def launch_or_reconcile_campaign(
     # Create exactly one new PAUSED campaign
     # -----------------------------------------------------
 
-    name = (
-        f"[MMI] {release.artist} - "
-        f"{release.title}"
-    )
+    if plan.playlist_id is not None:
+        name = (
+            f"[MMI] Misumena - "
+            f"{playlist.name}"
+        )
+        objective = "OUTCOME_TRAFFIC"
+    else:
+        name = (
+            f"[MMI] {release.artist} - "
+            f"{release.title}"
+        )
+        objective = plan.objective
 
     created = create_paused_campaign(
         name=name,
-        objective=plan.objective,
+        objective=objective,
     )
 
     campaign_id = str(
@@ -170,8 +214,9 @@ def launch_or_reconcile_campaign(
 
     local = MetaCampaign(
         release_id=
-            release_id,
-
+            plan.release_id,
+        playlist_id=
+            plan.playlist_id,
         meta_campaign_id=
             campaign_id,
 
@@ -183,7 +228,7 @@ def launch_or_reconcile_campaign(
 
         objective=
             match.get("objective")
-            or plan.objective,
+            or objective,
     )
 
     db.add(
