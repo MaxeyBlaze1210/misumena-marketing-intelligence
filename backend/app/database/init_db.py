@@ -72,6 +72,23 @@ def init_db():
         bind=engine
     )
 
+    # Existing SQLite databases need the new Playlist column
+    # before any ORM query against Playlist is executed.
+    if engine.dialect.name == "sqlite":
+        with engine.begin() as connection:
+            playlist_columns = {
+                row[1]
+                for row in connection.exec_driver_sql(
+                    "PRAGMA table_info(playlists)"
+                )
+            }
+
+            if "promo_folder_url" not in playlist_columns:
+                connection.exec_driver_sql(
+                    "ALTER TABLE playlists "
+                    "ADD COLUMN promo_folder_url VARCHAR"
+                )
+
     # Seed artist-owned / artist-catalog playlist records.
     db = SessionLocal()
     try:
@@ -401,23 +418,6 @@ def init_db():
                     "ix_meta_campaign_plans_meta_audience_id "
                     "ON meta_campaign_plans (meta_audience_id)"
                 )
-
-                # ---------------------------------------------
-                # playlists
-                # ---------------------------------------------
-
-                playlist_columns = {
-                    row[1]
-                    for row in connection.exec_driver_sql(
-                        "PRAGMA table_info(playlists)"
-                    )
-                }
-
-                if "promo_folder_url" not in playlist_columns:
-                    connection.exec_driver_sql(
-                        "ALTER TABLE playlists "
-                        "ADD COLUMN promo_folder_url VARCHAR"
-                    )
 
                 # ---------------------------------------------
                 # meta_campaigns
