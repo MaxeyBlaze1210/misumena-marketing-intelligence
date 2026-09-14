@@ -389,6 +389,11 @@ def create_paused_adset(
             "PAUSED",
     }
 
+    # Direct-link traffic campaigns do not use a pixel.
+    # In that case Meta must not receive a promoted_object.
+    if not pixel_id:
+        data.pop("promoted_object", None)
+
     if start_time is not None:
         data["start_time"] = start_time
 
