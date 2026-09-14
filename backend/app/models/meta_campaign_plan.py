@@ -27,7 +27,14 @@ class MetaCampaignPlan(Base):
     release_id = Column(
         Integer,
         ForeignKey("releases.id"),
-        nullable=False,
+        nullable=True,
+        index=True,
+    )
+
+    playlist_id = Column(
+        Integer,
+        ForeignKey("playlists.id"),
+        nullable=True,
         index=True,
     )
 
@@ -106,6 +113,10 @@ class MetaCampaignPlan(Base):
 
     release = relationship(
         "Release",
+    )
+
+    playlist = relationship(
+        "Playlist",
     )
 
     meta_campaign_record_id = Column(

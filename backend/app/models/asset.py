@@ -18,7 +18,14 @@ class Asset(Base):
     release_id = Column(
         Integer,
         ForeignKey("releases.id"),
-        nullable=False,
+        nullable=True,
+        index=True,
+    )
+
+    playlist_id = Column(
+        Integer,
+        ForeignKey("playlists.id"),
+        nullable=True,
         index=True,
     )
 
@@ -88,6 +95,10 @@ class Asset(Base):
 
     release = relationship(
         "Release",
+    )
+
+    playlist = relationship(
+        "Playlist",
     )
 
     campaign_plan_links = relationship(

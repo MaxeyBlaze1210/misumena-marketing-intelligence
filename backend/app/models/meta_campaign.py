@@ -15,6 +15,13 @@ class MetaCampaign(Base):
         nullable=True,
     )
 
+    playlist_id = Column(
+        Integer,
+        ForeignKey("playlists.id"),
+        nullable=True,
+        index=True,
+    )
+
     meta_campaign_id = Column(
         String,
         unique=True,
