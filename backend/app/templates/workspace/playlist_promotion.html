@@ -281,6 +281,15 @@
                         {{ campaign_variants[0].name }}
                     </strong>
                 </p>
+
+                <p>
+                    Targeting interests:
+                    <strong>
+                        {% for link in campaign_variants[0].interests %}
+                            {{ link.meta_interest.name }}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    </strong>
+                </p>
             {% endif %}
 
             <p class="muted">
@@ -289,8 +298,9 @@
             </p>
 
             <p class="muted">
-                Actual Meta targeting interests still need
-                to be configured before launch is enabled.
+                Targeting interests are stored in MMI.
+                Country targeting and playlist launch
+                configuration still need to be completed.
             </p>
 
             <p class="muted">
@@ -325,6 +335,32 @@
                             </option>
                         {% endfor %}
                     </select>
+
+                    <div style="margin-top: 16px;">
+                        <label>
+                            Targeting interests
+                        </label>
+
+                        <select
+                            name="meta_interest_ids"
+                            multiple
+                            required
+                            size="12"
+                            style="width: 100%;"
+                        >
+                            {% for interest in playlist_interest_options %}
+                                <option value="{{ interest.id }}">
+                                    {{ interest.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+
+                        <p class="muted">
+                            Select one or more actual Meta interests.
+                            On Mac, hold Command to select several.
+                        </p>
+                    </div>
+
 
                     <div style="margin-top: 12px;">
                         <button type="submit">

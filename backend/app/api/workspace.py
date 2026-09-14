@@ -3114,6 +3114,23 @@ def playlist_promotion(
         .all()
     )
 
+    # Real Meta interests available for playlist targeting.
+    # Exclude Spotify / Apple Music base-platform interests;
+    # this experiment is direct traffic to Spotify.
+    playlist_interest_options = (
+        db.query(MetaInterest)
+        .filter(
+            MetaInterest.meta_interest_id.isnot(None)
+        )
+        .filter(
+            ~MetaInterest.id.in_([14, 138])
+        )
+        .order_by(
+            MetaInterest.name.asc()
+        )
+        .all()
+    )
+
     campaign_plan = (
         db.query(MetaCampaignPlan)
         .filter(
@@ -3158,6 +3175,8 @@ def playlist_promotion(
             "playlist": playlist,
             "creatives": creatives,
             "meta_audiences": meta_audiences,
+            "playlist_interest_options":
+                playlist_interest_options,
             "campaign_plan": campaign_plan,
             "campaign_variants": campaign_variants,
             "campaign_cells": campaign_cells,
@@ -3187,8 +3206,12 @@ def playlist_promotion(
 def create_playlist_experiment(
     playlist_id: int,
     meta_audience_id: int = Form(...),
+    meta_interest_ids: list[int] = Form(...),
 ):
     from app.models.playlist import Playlist
+    from app.models.meta_campaign_variant_interest import (
+        MetaCampaignVariantInterest,
+    )
 
     from app.api.campaign_builder import (
         sync_campaign_cells,
@@ -3240,6 +3263,46 @@ def create_playlist_experiment(
                 "Selected Meta audience was not found."
             )
 
+        selected_interest_ids = set(
+            meta_interest_ids
+        )
+
+        if not selected_interest_ids:
+            raise RuntimeError(
+                "Select at least one targeting interest."
+            )
+
+        if selected_interest_ids & {14, 138}:
+            raise RuntimeError(
+                "Spotify and Apple Music cannot be used "
+                "as targeting interests for this experiment."
+            )
+
+        targeting_interests = (
+            db.query(MetaInterest)
+            .filter(
+                MetaInterest.id.in_(
+                    selected_interest_ids
+                )
+            )
+            .all()
+        )
+
+        if (
+            len(targeting_interests)
+            != len(selected_interest_ids)
+        ):
+            raise RuntimeError(
+                "One or more selected Meta interests "
+                "could not be found."
+            )
+
+        for interest in targeting_interests:
+            if not interest.meta_interest_id:
+                raise RuntimeError(
+                    f"{interest.name} has no Meta interest ID."
+                )
+
         creatives = (
             db.query(Asset)
             .filter(
@@ -3290,6 +3353,17 @@ def create_playlist_experiment(
         )
 
         db.add(variant)
+        db.flush()
+
+        for interest in targeting_interests:
+            db.add(
+                MetaCampaignVariantInterest(
+                    meta_campaign_variant_id=
+                        variant.id,
+                    meta_interest_id=
+                        interest.id,
+                )
+            )
 
         for creative in creatives:
             db.add(
