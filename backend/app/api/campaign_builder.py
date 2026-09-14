@@ -11,7 +11,7 @@ from app.services.meta_stage1_launch_service import (
 from app.services.meta_adset_launch_service import (
     launch_all_planned_adsets,
 )
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 from fastapi import APIRouter, Form, HTTPException
@@ -970,6 +970,106 @@ def remove_playlist_campaign_country(
 
         return playlist_promotion_redirect(
             playlist_id
+        )
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
+# ---------------------------------------------------------
+# Playlist delivery settings
+# ---------------------------------------------------------
+
+@router.post(
+    "/playlists/{playlist_id}/promotion/delivery"
+)
+def set_playlist_delivery(
+    playlist_id: int,
+    age_min: int = Form(...),
+    age_max: int = Form(...),
+    start_date: date = Form(...),
+    duration_days: int = Form(...),
+    daily_budget_total: Decimal = Form(...),
+):
+    if age_min < 18:
+        raise HTTPException(
+            status_code=400,
+            detail="Minimum age cannot be below 18.",
+        )
+
+    if age_max > 65:
+        raise HTTPException(
+            status_code=400,
+            detail="Maximum age cannot exceed 65.",
+        )
+
+    if age_max < age_min:
+        raise HTTPException(
+            status_code=400,
+            detail="Maximum age cannot be below minimum age.",
+        )
+
+    if duration_days < 1 or duration_days > 90:
+        raise HTTPException(
+            status_code=400,
+            detail="Duration must be between 1 and 90 days.",
+        )
+
+    if daily_budget_total <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Daily budget must be greater than zero.",
+        )
+
+    db = SessionLocal()
+
+    try:
+        campaign_plan = get_playlist_campaign_plan(
+            db,
+            playlist_id,
+        )
+
+        if (
+            campaign_plan.meta_campaign_record_id
+            is not None
+        ):
+            raise RuntimeError(
+                "Delivery settings cannot be changed "
+                "after the Meta campaign has been built."
+            )
+
+        campaign_plan.age_min = age_min
+        campaign_plan.age_max = age_max
+
+        campaign_plan.start_date = start_date
+        campaign_plan.end_date = (
+            start_date
+            + timedelta(
+                days=duration_days - 1
+            )
+        )
+
+        campaign_plan.total_budget = (
+            daily_budget_total
+            * Decimal(duration_days)
+        ).quantize(
+            Decimal("0.01")
+        )
+
+        db.commit()
+
+        return playlist_promotion_redirect(
+            playlist_id,
+            {
+                "experiment_status": "success",
+                "experiment_message": (
+                    "Delivery settings saved."
+                ),
+            },
         )
 
     except Exception:

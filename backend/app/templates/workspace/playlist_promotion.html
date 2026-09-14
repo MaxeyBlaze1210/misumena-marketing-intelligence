@@ -558,6 +558,192 @@
 
             </dl>
 
+            <h3>
+                Delivery &amp; budget
+            </h3>
+
+            <form
+                method="post"
+                action="/workspace/playlists/{{ playlist.id }}/promotion/delivery"
+            >
+                <div class="release-grid">
+
+                    <label class="release-card">
+                        <div class="eyebrow">
+                            Minimum age
+                        </div>
+
+                        <input
+                            type="number"
+                            name="age_min"
+                            min="18"
+                            max="65"
+                            required
+                            value="{{ campaign_plan.age_min }}"
+                        >
+                    </label>
+
+                    <label class="release-card">
+                        <div class="eyebrow">
+                            Maximum age
+                        </div>
+
+                        <input
+                            type="number"
+                            name="age_max"
+                            min="18"
+                            max="65"
+                            required
+                            value="{{ campaign_plan.age_max }}"
+                        >
+                    </label>
+
+                    <label class="release-card">
+                        <div class="eyebrow">
+                            Start date
+                        </div>
+
+                        <input
+                            type="date"
+                            name="start_date"
+                            required
+                            value="{{ campaign_plan.start_date or '' }}"
+                        >
+                    </label>
+
+                    <label class="release-card">
+                        <div class="eyebrow">
+                            Duration
+                        </div>
+
+                        <input
+                            type="number"
+                            name="duration_days"
+                            min="1"
+                            max="90"
+                            required
+                            value="{{ campaign_days if campaign_days else 7 }}"
+                        >
+
+                        <div class="muted">
+                            days
+                        </div>
+                    </label>
+
+                    <label class="release-card">
+                        <div class="eyebrow">
+                            Daily total budget
+                        </div>
+
+                        <input
+                            type="number"
+                            name="daily_budget_total"
+                            min="0.01"
+                            step="0.01"
+                            required
+                            value="{{ '%.2f'|format(daily_total_budget if daily_total_budget is not none else 5.0) }}"
+                        >
+
+                        <div class="muted">
+                            € / day across both creatives
+                        </div>
+                    </label>
+
+                </div>
+
+                <div style="margin-top: 12px;">
+                    <button type="submit">
+                        Save delivery settings
+                    </button>
+                </div>
+            </form>
+
+            <div
+                class="release-grid"
+                style="margin-top: 16px;"
+            >
+                <article class="release-card">
+                    <div class="eyebrow">
+                        Age
+                    </div>
+
+                    <strong>
+                        {{ campaign_plan.age_min }}
+                        –
+                        {{ campaign_plan.age_max }}
+                    </strong>
+                </article>
+
+                <article class="release-card">
+                    <div class="eyebrow">
+                        Schedule
+                    </div>
+
+                    <strong>
+                        {% if campaign_plan.start_date
+                              and campaign_plan.end_date %}
+                            {{ campaign_plan.start_date }}
+                            →
+                            {{ campaign_plan.end_date }}
+                        {% else %}
+                            Not set
+                        {% endif %}
+                    </strong>
+                </article>
+
+                <article class="release-card">
+                    <div class="eyebrow">
+                        Daily total
+                    </div>
+
+                    <strong>
+                        {% if daily_total_budget is not none %}
+                            €{{ "%.2f"|format(daily_total_budget) }}
+                        {% else %}
+                            Not set
+                        {% endif %}
+                    </strong>
+                </article>
+
+                <article class="release-card">
+                    <div class="eyebrow">
+                        Daily per ad set
+                    </div>
+
+                    <strong>
+                        {% if daily_cell_budget is not none %}
+                            €{{ "%.2f"|format(daily_cell_budget) }}
+                        {% else %}
+                            Not set
+                        {% endif %}
+                    </strong>
+                </article>
+
+                <article class="release-card">
+                    <div class="eyebrow">
+                        Planned total
+                    </div>
+
+                    <strong>
+                        €{{ campaign_plan.total_budget }}
+                    </strong>
+                </article>
+
+                <article class="release-card">
+                    <div class="eyebrow">
+                        Pixel
+                    </div>
+
+                    <strong>
+                        None
+                    </strong>
+
+                    <div class="muted">
+                        Direct Spotify traffic
+                    </div>
+                </article>
+            </div>
+
             <p class="muted">
                 Direct Spotify destination:
                 {{ campaign_plan.destination_url }}

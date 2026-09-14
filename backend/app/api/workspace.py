@@ -3249,6 +3249,38 @@ def playlist_promotion(
             .all()
         )
 
+    campaign_days = None
+    daily_total_budget = None
+    daily_cell_budget = None
+
+    if campaign_plan is not None:
+        if (
+            campaign_plan.start_date is not None
+            and campaign_plan.end_date is not None
+        ):
+            calculated_days = (
+                campaign_plan.end_date
+                - campaign_plan.start_date
+            ).days + 1
+
+            if calculated_days > 0:
+                campaign_days = calculated_days
+
+        if (
+            campaign_days
+            and campaign_plan.total_budget is not None
+        ):
+            daily_total_budget = (
+                float(campaign_plan.total_budget)
+                / campaign_days
+            )
+
+            if campaign_cells:
+                daily_cell_budget = (
+                    daily_total_budget
+                    / len(campaign_cells)
+                )
+
     return templates.TemplateResponse(
         request=request,
         name="workspace/playlist_promotion.html",
@@ -3279,6 +3311,12 @@ def playlist_promotion(
                 selected_countries,
             "selected_country_count":
                 len(selected_countries),
+            "campaign_days":
+                campaign_days,
+            "daily_total_budget":
+                daily_total_budget,
+            "daily_cell_budget":
+                daily_cell_budget,
             "experiment_status":
                 request.query_params.get(
                     "experiment_status"
