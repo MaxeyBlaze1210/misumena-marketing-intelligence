@@ -275,21 +275,66 @@
             </div>
 
             {% if campaign_variants %}
-                <p>
-                    Audience context:
-                    <strong>
-                        {{ campaign_variants[0].name }}
-                    </strong>
-                </p>
+                <form
+                    method="post"
+                    action="/workspace/playlists/{{ playlist.id }}/promotion/targeting"
+                >
+                    <label>
+                        Audience family
+                    </label>
 
-                <p>
-                    Targeting interests:
-                    <strong>
-                        {% for link in campaign_variants[0].interests %}
-                            {{ link.meta_interest.name }}{% if not loop.last %}, {% endif %}
+                    <select
+                        name="meta_audience_id"
+                        required
+                    >
+                        {% for audience in meta_audiences %}
+                            <option
+                                value="{{ audience.id }}"
+                                {% if campaign_plan.meta_audience_id == audience.id %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ audience.name }}
+                            </option>
                         {% endfor %}
-                    </strong>
-                </p>
+                    </select>
+
+                    <div style="margin-top: 16px;">
+                        <label>
+                            Targeting interests
+                        </label>
+
+                        <select
+                            name="meta_interest_ids"
+                            multiple
+                            required
+                            size="12"
+                            style="width: 100%;"
+                        >
+                            {% for interest in playlist_interest_options %}
+                                <option
+                                    value="{{ interest.id }}"
+                                    {% if interest.id in selected_playlist_interest_ids %}
+                                        selected
+                                    {% endif %}
+                                >
+                                    {{ interest.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+
+                        <p class="muted">
+                            Select one or more actual Meta interests.
+                            On Mac, hold Command to select several.
+                        </p>
+                    </div>
+
+                    <div style="margin-top: 12px;">
+                        <button type="submit">
+                            Save targeting
+                        </button>
+                    </div>
+                </form>
             {% endif %}
 
             <p class="muted">
