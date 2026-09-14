@@ -1969,3 +1969,275 @@ def remove_campaign_country(
 
     finally:
         db.close()
+
+# ---------------------------------------------------------
+# Playlist creative copy
+# ---------------------------------------------------------
+
+@router.post(
+    "/playlists/{playlist_id}/promotion/copy"
+)
+def set_playlist_primary_text(
+    playlist_id: int,
+    primary_text: str = Form(...),
+):
+    db = SessionLocal()
+
+    try:
+        campaign_plan = get_playlist_campaign_plan(
+            db,
+            playlist_id,
+        )
+
+        primary_text = primary_text.strip()
+
+        if not primary_text:
+            raise HTTPException(
+                status_code=400,
+                detail="Primary text cannot be empty.",
+            )
+
+        links = (
+            db.query(MetaCampaignPlanAsset)
+            .filter(
+                MetaCampaignPlanAsset.meta_campaign_plan_id
+                == campaign_plan.id
+            )
+            .all()
+        )
+
+        if len(links) != 2:
+            raise RuntimeError(
+                "Playlist experiment requires exactly "
+                "2 selected creatives."
+            )
+
+        for link in links:
+            link.primary_text = primary_text
+
+        db.commit()
+
+        return playlist_promotion_redirect(
+            playlist_id,
+            {
+                "experiment_status": "success",
+                "experiment_message":
+                    "Shared ad copy saved for C1 and C2.",
+            },
+        )
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
+# ---------------------------------------------------------
+# Playlist Meta build
+# Creates everything PAUSED.
+# ---------------------------------------------------------
+
+@router.post(
+    "/playlists/{playlist_id}/promotion/meta-build"
+)
+def build_playlist_meta_campaign(
+    playlist_id: int,
+):
+    db = SessionLocal()
+
+    try:
+        campaign_plan = get_playlist_campaign_plan(
+            db,
+            playlist_id,
+        )
+
+        if campaign_plan.objective != "OUTCOME_TRAFFIC":
+            raise RuntimeError(
+                "Playlist objective must be OUTCOME_TRAFFIC."
+            )
+
+        if (
+            campaign_plan.optimization_goal
+            != "LINK_CLICKS"
+        ):
+            raise RuntimeError(
+                "Playlist optimization must be LINK_CLICKS."
+            )
+
+        if campaign_plan.meta_pixel_id:
+            raise RuntimeError(
+                "Direct Spotify campaign must not use "
+                "a Meta pixel."
+            )
+
+        if not campaign_plan.destination_url:
+            raise RuntimeError(
+                "Playlist destination URL is missing."
+            )
+
+        cells = (
+            db.query(MetaCampaignCell)
+            .filter(
+                MetaCampaignCell.meta_campaign_plan_id
+                == campaign_plan.id,
+                MetaCampaignCell.status != "detached",
+            )
+            .all()
+        )
+
+        if len(cells) != 2:
+            raise RuntimeError(
+                "Playlist experiment requires exactly "
+                f"2 campaign cells; found {len(cells)}."
+            )
+
+        country_count = (
+            db.query(MetaCampaignPlanCountry)
+            .filter(
+                MetaCampaignPlanCountry
+                .meta_campaign_plan_id
+                == campaign_plan.id
+            )
+            .count()
+        )
+
+        if country_count == 0:
+            raise RuntimeError(
+                "Countries must be selected before building."
+            )
+
+        links = (
+            db.query(MetaCampaignPlanAsset)
+            .filter(
+                MetaCampaignPlanAsset.meta_campaign_plan_id
+                == campaign_plan.id
+            )
+            .all()
+        )
+
+        if len(links) != 2:
+            raise RuntimeError(
+                "Exactly 2 creatives must be selected."
+            )
+
+        if any(
+            not (
+                link.primary_text
+                and link.primary_text.strip()
+            )
+            for link in links
+        ):
+            raise RuntimeError(
+                "Save shared ad copy before building."
+            )
+
+        if (
+            campaign_plan.start_date is None
+            or campaign_plan.end_date is None
+        ):
+            raise RuntimeError(
+                "Campaign schedule is required."
+            )
+
+        campaign_days = (
+            campaign_plan.end_date
+            - campaign_plan.start_date
+        ).days + 1
+
+        if campaign_days <= 0:
+            raise RuntimeError(
+                "Campaign schedule is invalid."
+            )
+
+        if campaign_plan.total_budget is None:
+            raise RuntimeError(
+                "Campaign budget is required."
+            )
+
+        total_budget = float(
+            campaign_plan.total_budget
+        )
+
+        daily_total_budget = (
+            total_budget / campaign_days
+        )
+
+        daily_budget_per_adset = (
+            daily_total_budget / len(cells)
+        )
+
+        if daily_budget_per_adset <= 0:
+            raise RuntimeError(
+                "Calculated ad-set budget is invalid."
+            )
+
+        # Campaign: PAUSED
+        campaign_result = (
+            launch_or_reconcile_campaign(
+                db,
+                plan_id=campaign_plan.id,
+            )
+        )
+
+        db.commit()
+
+        # Two ad sets: PAUSED
+        adset_result = (
+            launch_all_planned_adsets(
+                db,
+                campaign_plan.id,
+                daily_budget=
+                    daily_budget_per_adset,
+            )
+        )
+
+        # Two ads: PAUSED
+        ad_result = launch_all_ads_for_plan(
+            db,
+            campaign_plan.id,
+        )
+
+        status = (
+            "success"
+            if ad_result["failed"] == 0
+            else "error"
+        )
+
+        message = (
+            f"Campaign {campaign_result['action']}; "
+            f"ad sets: "
+            f"{adset_result['created']} created, "
+            f"{adset_result['reconciled']} reconciled; "
+            f"ads: "
+            f"{ad_result['created']} created, "
+            f"{ad_result['reconciled']} reconciled, "
+            f"{ad_result['failed']} failed. "
+            f"Daily total €{daily_total_budget:.2f}; "
+            f"€{daily_budget_per_adset:.2f} per ad set. "
+            "Everything remains PAUSED."
+        )
+
+        return playlist_promotion_redirect(
+            playlist_id,
+            {
+                "experiment_status": status,
+                "experiment_message": message,
+            },
+        )
+
+    except Exception as exc:
+        db.rollback()
+
+        return playlist_promotion_redirect(
+            playlist_id,
+            {
+                "experiment_status": "error",
+                "experiment_message": str(exc),
+            },
+        )
+
+    finally:
+        db.close()
+

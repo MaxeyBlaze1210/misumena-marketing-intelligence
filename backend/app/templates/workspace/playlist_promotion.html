@@ -559,6 +559,38 @@
             </dl>
 
             <h3>
+                Ad copy
+            </h3>
+
+            <form
+                method="post"
+                action="/workspace/playlists/{{ playlist.id }}/promotion/copy"
+            >
+                <label>
+                    <div class="eyebrow">
+                        Shared primary text
+                    </div>
+
+                    <textarea
+                        name="primary_text"
+                        rows="4"
+                        required
+                        style="width:100%;"
+                    ></textarea>
+                </label>
+
+                <p class="muted">
+                    Applied identically to C1 and C2,
+                    so the video remains the only
+                    creative-test variable.
+                </p>
+
+                <button type="submit">
+                    Save shared ad copy
+                </button>
+            </form>
+
+            <h3>
                 Delivery &amp; budget
             </h3>
 
@@ -743,6 +775,34 @@
                     </div>
                 </article>
             </div>
+
+            {% if campaign_plan.meta_campaign_record_id %}
+                <p>
+                    <strong>
+                        Meta campaign has been built.
+                    </strong>
+                </p>
+            {% else %}
+                <form
+                    method="post"
+                    action="/workspace/playlists/{{ playlist.id }}/promotion/meta-build"
+                    style="margin-top: 20px;"
+                >
+                    <button
+                        type="submit"
+                        onclick="return confirm(
+                            'Create the PAUSED Meta campaign, two PAUSED ad sets and two PAUSED ads? Nothing will be activated.'
+                        );"
+                    >
+                        Build PAUSED Meta campaign
+                    </button>
+                </form>
+
+                <p class="muted">
+                    Creates Meta objects in PAUSED state.
+                    This does not start spending.
+                </p>
+            {% endif %}
 
             <p class="muted">
                 Direct Spotify destination:

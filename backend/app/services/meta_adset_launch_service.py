@@ -276,7 +276,14 @@ def launch_or_reconcile_adset(
     # Create new PAUSED ad set
     # -----------------------------------------------------
 
-    if not plan.meta_pixel_id:
+    is_playlist_direct = (
+        plan.playlist_id is not None
+    )
+
+    if (
+        not is_playlist_direct
+        and not plan.meta_pixel_id
+    ):
         raise RuntimeError(
             "Campaign plan has no Meta pixel configured."
         )
@@ -302,12 +309,16 @@ def launch_or_reconcile_adset(
         daily_budget=
             daily_budget,
 
-        optimization_goal=
-            plan.optimization_goal,
-
-        pixel_id=
-            plan.meta_pixel_id,
-
+        optimization_goal=(
+            "LINK_CLICKS"
+            if is_playlist_direct
+            else plan.optimization_goal
+        ),
+        pixel_id=(
+            ""
+            if is_playlist_direct
+            else plan.meta_pixel_id
+        ),
         custom_event_type=
             "CONTENT_VIEW",
 
