@@ -6,31 +6,31 @@
         name="viewport"
         content="width=device-width, initial-scale=1.0"
     >
-
     <title>Playlists — MMI Workspace</title>
-
     <link
         rel="stylesheet"
-        href="/static/css/workspace.css?v=playlists2"
+        href="/static/css/workspace.css?v=playlists3"
     >
 </head>
 
 <body>
     <main class="workspace">
-
         <nav class="top-workspace-tabs">
             <a href="/workspace/releases">
                 Releases
             </a>
+
             <a
                 class="active"
                 href="/workspace/playlists"
             >
                 Playlists
             </a>
+
             <a href="/workspace/contacts">
                 Contacts
             </a>
+
             <a href="/workspace/research">
                 Research
             </a>
@@ -45,13 +45,6 @@
             </div>
 
             <div class="playlist-header-actions">
-                <a
-                    class="secondary-button"
-                    href="/workspace/playlists"
-                >
-                    Check all
-                </a>
-
                 <form
                     method="post"
                     action="/workspace/playlists/sync"
@@ -79,137 +72,170 @@
             </div>
         {% endif %}
 
-        <section class="playlist-grid">
+        <section>
+            <p class="eyebrow">Artist catalog</p>
+            <h2>Artist playlists</h2>
 
-            {% for playlist in playlists %}
+            <div class="release-grid">
+                {% for playlist in artist_playlists %}
+                    <article class="release-card">
+                        {% if playlist.artwork_url %}
+                            <img
+                                class="release-artwork"
+                                src="{{ playlist.artwork_url }}"
+                                alt="{{ playlist.name }} artwork"
+                            >
+                        {% endif %}
 
-            <article class="playlist-card">
+                        <div class="release-card-content">
+                            <p class="release-date">
+                                {{ playlist.platform }}
+                            </p>
 
-                <h2>{{ playlist.name }}</h2>
+                            <h2>{{ playlist.name }}</h2>
 
-                {% if playlist.error %}
+                            {% if playlist.description %}
+                                <p>{{ playlist.description }}</p>
+                            {% endif %}
 
-                    <div class="playlist-error">
-                        <strong>Could not check playlist</strong>
-                        <p>{{ playlist.error }}</p>
-                    </div>
+                            <div class="release-actions">
+                                <a
+                                    href="/workspace/playlists/{{ playlist.id }}"
+                                >
+                                    Open workspace
+                                </a>
 
+                                {% if playlist.spotify_url %}
+                                    <a
+                                        href="{{ playlist.spotify_url }}"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        Open Spotify
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </article>
                 {% else %}
-
-                    <div class="playlist-counts">
-
-                        <div>
-                            <span>Spotify</span>
-                            <strong>
-                                {{ playlist.spotify_count }}
-                            </strong>
-                        </div>
-
-                        <div class="playlist-arrow">
-                            →
-                        </div>
-
-                        <div>
-                            <span>Apple</span>
-                            <strong>
-                                {{ playlist.apple_count }}
-                            </strong>
-                        </div>
-
-                    </div>
-
-                    {% if playlist.ordered
-                          and not playlist.extras %}
-
-                        <p class="sync-status sync-ok">
-                            ✓ Correct relative Spotify order
-                        </p>
-
-                    {% else %}
-
-                        <p class="sync-status sync-warning">
-                            ⚠ Reconciliation needed
-                        </p>
-
-                    {% endif %}
-
-                    <div class="playlist-stats">
-
-                        <div>
-                            <span>Matched</span>
-                            <strong>
-                                {{ playlist.matched_count }}
-                            </strong>
-                        </div>
-
-                        <div>
-                            <span>Missing on Apple</span>
-                            <strong>
-                                {{ playlist.missing|length }}
-                            </strong>
-                        </div>
-
-                        <div>
-                            <span>Apple-only</span>
-                            <strong>
-                                {{ playlist.extras|length }}
-                            </strong>
-                        </div>
-
-                    </div>
-
-                    {% if playlist.missing %}
-
-                    <details class="playlist-details">
-                        <summary>
-                            {{ playlist.missing|length }}
-                            unavailable on Apple
-                        </summary>
-
-                        <ol>
-                            {% for track in playlist.missing %}
-                            <li>
-                                <strong>
-                                    {{ track.artist }}
-                                </strong>
-                                — {{ track.title }}
-                            </li>
-                            {% endfor %}
-                        </ol>
-                    </details>
-
-                    {% endif %}
-
-                    {% if playlist.extras %}
-
-                    <details class="playlist-details">
-                        <summary>
-                            {{ playlist.extras|length }}
-                            Apple-only tracks
-                        </summary>
-
-                        <ol>
-                            {% for track in playlist.extras %}
-                            <li>
-                                <strong>
-                                    {{ track.artist }}
-                                </strong>
-                                — {{ track.title }}
-                            </li>
-                            {% endfor %}
-                        </ol>
-                    </details>
-
-                    {% endif %}
-
-                {% endif %}
-
-            </article>
-
-            {% endfor %}
-
+                    <p>No artist playlists found.</p>
+                {% endfor %}
+            </div>
         </section>
 
+        <section>
+            <p class="eyebrow">Utility</p>
+            <h2>Spotify → Apple Music mirrors</h2>
+
+            <div class="playlist-grid">
+                {% for playlist in playlists %}
+                    <article class="playlist-card">
+                        <h2>{{ playlist.name }}</h2>
+
+                        {% if playlist.error %}
+                            <div class="playlist-error">
+                                <strong>Could not check playlist</strong>
+                                <p>{{ playlist.error }}</p>
+                            </div>
+                        {% else %}
+                            <div class="playlist-counts">
+                                <div>
+                                    <span>Spotify</span>
+                                    <strong>
+                                        {{ playlist.spotify_count }}
+                                    </strong>
+                                </div>
+
+                                <div class="playlist-arrow">
+                                    →
+                                </div>
+
+                                <div>
+                                    <span>Apple</span>
+                                    <strong>
+                                        {{ playlist.apple_count }}
+                                    </strong>
+                                </div>
+                            </div>
+
+                            {% if playlist.ordered
+                                  and not playlist.extras %}
+                                <p class="sync-status sync-ok">
+                                    ✓ Correct relative Spotify order
+                                </p>
+                            {% else %}
+                                <p class="sync-status sync-warning">
+                                    ⚠ Reconciliation needed
+                                </p>
+                            {% endif %}
+
+                            <div class="playlist-stats">
+                                <div>
+                                    <span>Matched</span>
+                                    <strong>
+                                        {{ playlist.matched_count }}
+                                    </strong>
+                                </div>
+
+                                <div>
+                                    <span>Missing on Apple</span>
+                                    <strong>
+                                        {{ playlist.missing|length }}
+                                    </strong>
+                                </div>
+
+                                <div>
+                                    <span>Apple-only</span>
+                                    <strong>
+                                        {{ playlist.extras|length }}
+                                    </strong>
+                                </div>
+                            </div>
+
+                            {% if playlist.missing %}
+                                <details class="playlist-details">
+                                    <summary>
+                                        {{ playlist.missing|length }}
+                                        unavailable on Apple
+                                    </summary>
+
+                                    <ol>
+                                        {% for track in playlist.missing %}
+                                            <li>
+                                                <strong>
+                                                    {{ track.artist }}
+                                                </strong>
+                                                — {{ track.title }}
+                                            </li>
+                                        {% endfor %}
+                                    </ol>
+                                </details>
+                            {% endif %}
+
+                            {% if playlist.extras %}
+                                <details class="playlist-details">
+                                    <summary>
+                                        {{ playlist.extras|length }}
+                                        Apple-only tracks
+                                    </summary>
+
+                                    <ol>
+                                        {% for track in playlist.extras %}
+                                            <li>
+                                                <strong>
+                                                    {{ track.artist }}
+                                                </strong>
+                                                — {{ track.title }}
+                                            </li>
+                                        {% endfor %}
+                                    </ol>
+                                </details>
+                            {% endif %}
+                        {% endif %}
+                    </article>
+                {% endfor %}
+            </div>
+        </section>
     </main>
 </body>
 </html>

@@ -2951,6 +2951,7 @@ PLAYLIST_MIRROR_CONFIG = [
 @router.get("/playlists")
 def playlist_workspace(
     request: Request,
+    db: Session = Depends(get_db),
 ):
     from app.services.playlist_mirror.spotify_reader import (
         get_playlist_items,
@@ -2958,6 +2959,14 @@ def playlist_workspace(
     from app.services.playlist_mirror.compare_spotify_apple import (
         get_apple_tracks,
         score_match,
+    )
+
+    from app.models.playlist import Playlist
+
+    artist_playlists = (
+        db.query(Playlist)
+        .order_by(Playlist.id.asc())
+        .all()
     )
 
     results = []
@@ -3059,6 +3068,35 @@ def playlist_workspace(
         name="workspace/playlists.html",
         context={
             "playlists": results,
+            "artist_playlists": artist_playlists,
+        },
+    )
+
+
+@router.get("/playlists/{playlist_id}")
+def playlist_detail(
+    playlist_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    from app.models.playlist import Playlist
+
+    playlist = db.get(
+        Playlist,
+        playlist_id,
+    )
+
+    if playlist is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Playlist not found.",
+        )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="workspace/playlist_detail.html",
+        context={
+            "playlist": playlist,
         },
     )
 

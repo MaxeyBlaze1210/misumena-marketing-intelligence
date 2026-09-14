@@ -1,10 +1,11 @@
-from app.database.database import Base, engine
+from app.database.database import Base, SessionLocal, engine
 
 # Core
 from app.models.release import Release
 from app.models.track import Track
 from app.models.artist import Artist
 from app.models.release_artist import ReleaseArtist
+from app.models.playlist import Playlist
 
 # YouTube
 from app.models.youtube_video import YouTubeVideo
@@ -70,6 +71,40 @@ def init_db():
     Base.metadata.create_all(
         bind=engine
     )
+
+    # Seed artist-owned / artist-catalog playlist records.
+    db = SessionLocal()
+    try:
+        spotify_playlist_id = "37i9dQZF1DZ06evO0OzFqe"
+
+        playlist = (
+            db.query(Playlist)
+            .filter(
+                Playlist.spotify_playlist_id
+                == spotify_playlist_id
+            )
+            .one_or_none()
+        )
+
+        if playlist is None:
+            db.add(
+                Playlist(
+                    name="This Is Misumena",
+                    platform="Spotify",
+                    spotify_playlist_id=spotify_playlist_id,
+                    spotify_url=(
+                        "https://open.spotify.com/playlist/"
+                        + spotify_playlist_id
+                    ),
+                    description=(
+                        "Spotify-generated Misumena catalog playlist."
+                    ),
+                    playlist_type="artist_catalog",
+                )
+            )
+            db.commit()
+    finally:
+        db.close()
 
     if engine.dialect.name == "sqlite":
         with engine.begin() as connection:

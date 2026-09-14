@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <title>{{ playlist.name }} — MMI Workspace</title>
+    <link
+        rel="stylesheet"
+        href="/static/css/workspace.css?v=playlist-detail1"
+    >
+</head>
+
+<body>
+    <main class="workspace">
+        <a class="back-link" href="/workspace/playlists">
+            ← All playlists
+        </a>
+
+        <header class="release-workspace-header">
+            {% if playlist.artwork_url %}
+                <img
+                    class="workspace-cover"
+                    src="{{ playlist.artwork_url }}"
+                    alt="{{ playlist.name }} artwork"
+                >
+            {% endif %}
+
+            <div>
+                <p class="eyebrow">Playlist workspace</p>
+                <h1>{{ playlist.name }}</h1>
+                <p class="release-artist">
+                    {{ playlist.platform }}
+                </p>
+            </div>
+        </header>
+
+        <nav class="workspace-tabs">
+            <a
+                class="active"
+                href="/workspace/playlists/{{ playlist.id }}"
+            >
+                Overview
+            </a>
+
+            <span
+                class="tab-separator"
+                aria-hidden="true"
+            ></span>
+
+            <span>Promotion</span>
+            <span>Analytics</span>
+        </nav>
+
+        <section class="tab-content">
+            <section class="workspace-card">
+                <p class="eyebrow">Playlist</p>
+                <h2>{{ playlist.name }}</h2>
+
+                {% if playlist.description %}
+                    <p>{{ playlist.description }}</p>
+                {% endif %}
+
+                {% if playlist.spotify_url %}
+                    <p>
+                        <a
+                            href="{{ playlist.spotify_url }}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            Open playlist on Spotify
+                        </a>
+                    </p>
+                {% endif %}
+            </section>
+
+            {% if playlist.playlist_type == "artist_catalog" %}
+                <section class="workspace-card">
+                    <p class="eyebrow">Experiment</p>
+                    <h2>Catalog acquisition</h2>
+
+                    <p>
+                        Test whether paid acquisition to Spotify's
+                        Misumena catalog surface creates multi-track
+                        catalog consumption.
+                    </p>
+
+                    <p>
+                        Promotion and analytics will be added here next.
+                    </p>
+                </section>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>
