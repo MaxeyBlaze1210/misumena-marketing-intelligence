@@ -3073,6 +3073,197 @@ def playlist_workspace(
     )
 
 
+
+
+@router.get("/playlists/{playlist_id}/promotion")
+def playlist_promotion(
+    playlist_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    from app.models.playlist import Playlist
+    from app.models.asset import Asset
+
+    playlist = db.get(
+        Playlist,
+        playlist_id,
+    )
+
+    if playlist is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Playlist not found.",
+        )
+
+    creatives = (
+        db.query(Asset)
+        .filter(
+            Asset.playlist_id == playlist.id,
+            Asset.asset_type == "short_form_video",
+        )
+        .order_by(
+            Asset.id.asc()
+        )
+        .all()
+    )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="workspace/playlist_promotion.html",
+        context={
+            "playlist": playlist,
+            "creatives": creatives,
+            "promo_asset_status":
+                request.query_params.get(
+                    "promo_asset_status"
+                ),
+            "promo_asset_message":
+                request.query_params.get(
+                    "promo_asset_message"
+                ),
+        },
+    )
+
+
+@router.post(
+    "/playlists/{playlist_id}/promotion/promo-folder"
+)
+def set_playlist_promo_folder(
+    playlist_id: int,
+    promo_folder_url: str = Form(""),
+):
+    from app.models.playlist import Playlist
+
+    db = SessionLocal()
+
+    try:
+        playlist = db.get(
+            Playlist,
+            playlist_id,
+        )
+
+        if playlist is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Playlist not found.",
+            )
+
+        promo_folder_url = (
+            promo_folder_url.strip()
+        )
+
+        playlist.promo_folder_url = (
+            promo_folder_url
+            if promo_folder_url
+            else None
+        )
+
+        db.commit()
+
+        params = urlencode(
+            {
+                "promo_asset_status": "success",
+                "promo_asset_message":
+                    "Promo folder updated.",
+            }
+        )
+
+        return RedirectResponse(
+            url=(
+                f"/workspace/playlists/"
+                f"{playlist_id}/promotion?"
+                f"{params}"
+            ),
+            status_code=303,
+        )
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
+@router.post(
+    "/playlists/{playlist_id}/promotion/sync-creatives"
+)
+def sync_playlist_promo_creatives(
+    playlist_id: int,
+):
+    from app.models.playlist import Playlist
+    from app.services.playlist_asset_sync_service import (
+        sync_playlist_creatives,
+    )
+
+    db = SessionLocal()
+
+    try:
+        playlist = db.get(
+            Playlist,
+            playlist_id,
+        )
+
+        if playlist is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Playlist not found.",
+            )
+
+        if not playlist.promo_folder_url:
+            raise HTTPException(
+                status_code=400,
+                detail="Playlist has no promo folder configured.",
+            )
+
+        result = sync_playlist_creatives(
+            db,
+            playlist.id,
+            playlist.promo_folder_url,
+        )
+
+        params = urlencode(
+            {
+                "promo_asset_status": "success",
+                "promo_asset_message": (
+                    f"{result['found']} videos found; "
+                    f"{result['created']} created; "
+                    f"{result['updated']} updated."
+                ),
+            }
+        )
+
+        return RedirectResponse(
+            url=(
+                f"/workspace/playlists/"
+                f"{playlist_id}/promotion?"
+                f"{params}"
+            ),
+            status_code=303,
+        )
+
+    except Exception as exc:
+        db.rollback()
+
+        params = urlencode(
+            {
+                "promo_asset_status": "error",
+                "promo_asset_message": str(exc),
+            }
+        )
+
+        return RedirectResponse(
+            url=(
+                f"/workspace/playlists/"
+                f"{playlist_id}/promotion?"
+                f"{params}"
+            ),
+            status_code=303,
+        )
+
+    finally:
+        db.close()
+
 @router.get("/playlists/{playlist_id}")
 def playlist_detail(
     playlist_id: int,

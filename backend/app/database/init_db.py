@@ -403,6 +403,23 @@ def init_db():
                 )
 
                 # ---------------------------------------------
+                # playlists
+                # ---------------------------------------------
+
+                playlist_columns = {
+                    row[1]
+                    for row in connection.exec_driver_sql(
+                        "PRAGMA table_info(playlists)"
+                    )
+                }
+
+                if "promo_folder_url" not in playlist_columns:
+                    connection.exec_driver_sql(
+                        "ALTER TABLE playlists "
+                        "ADD COLUMN promo_folder_url VARCHAR"
+                    )
+
+                # ---------------------------------------------
                 # meta_campaigns
                 # ---------------------------------------------
 

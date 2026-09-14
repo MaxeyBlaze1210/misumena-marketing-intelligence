@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <title>{{ playlist.name }} · Promotion</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/workspace.css?v=playlist-promotion1"
+    >
+</head>
+
+<body>
+
+<div class="workspace-shell">
+
+    <a
+        class="back-link"
+        href="/workspace/playlists"
+    >
+        ← All playlists
+    </a>
+
+    <header class="workspace-header">
+        <div>
+            <div class="eyebrow">
+                Playlist workspace
+            </div>
+
+            <h1>
+                {{ playlist.name }}
+            </h1>
+
+            <div class="muted">
+                {{ playlist.platform }}
+            </div>
+        </div>
+    </header>
+
+    <nav class="workspace-tabs">
+        <a
+            href="/workspace/playlists/{{ playlist.id }}"
+        >
+            Overview
+        </a>
+
+        <span>·</span>
+
+        <a
+            class="active"
+            href="/workspace/playlists/{{ playlist.id }}/promotion"
+        >
+            Promotion
+        </a>
+
+        <span>·</span>
+
+        <span>
+            Analytics
+        </span>
+    </nav>
+
+    {% if promo_asset_message %}
+        <section class="workspace-card">
+            <strong>
+                {{ promo_asset_status | upper }}
+            </strong>
+
+            <div>
+                {{ promo_asset_message }}
+            </div>
+        </section>
+    {% endif %}
+
+    <section class="workspace-card">
+        <div class="eyebrow">
+            Experiment
+        </div>
+
+        <h2>
+            Catalog acquisition
+        </h2>
+
+        <p>
+            Test whether paid acquisition to Spotify's
+            Misumena catalog surface creates multi-track
+            catalog consumption.
+        </p>
+
+        <div class="muted">
+            Destination
+        </div>
+
+        {% if playlist.spotify_url %}
+            <p>
+                <a
+                    href="{{ playlist.spotify_url }}"
+                    target="_blank"
+                    rel="noopener"
+                >
+                    {{ playlist.spotify_url }}
+                </a>
+            </p>
+        {% else %}
+            <p>
+                No Spotify playlist URL configured.
+            </p>
+        {% endif %}
+
+        <p class="muted">
+            Planned design: one audience × two creatives.
+            Direct Spotify destination.
+        </p>
+    </section>
+
+    <section class="workspace-card">
+        <div class="eyebrow">
+            Creative source
+        </div>
+
+        <h2>
+            Dropbox promo folder
+        </h2>
+
+        <form
+            method="post"
+            action="/workspace/playlists/{{ playlist.id }}/promotion/promo-folder"
+        >
+            <label>
+                Shared Dropbox folder URL
+            </label>
+
+            <input
+                type="url"
+                name="promo_folder_url"
+                value="{{ playlist.promo_folder_url or '' }}"
+                placeholder="https://www.dropbox.com/..."
+                style="width: 100%;"
+            >
+
+            <div style="margin-top: 12px;">
+                <button type="submit">
+                    Save folder
+                </button>
+            </div>
+        </form>
+
+        {% if playlist.promo_folder_url %}
+            <form
+                method="post"
+                action="/workspace/playlists/{{ playlist.id }}/promotion/sync-creatives"
+                style="margin-top: 12px;"
+            >
+                <button type="submit">
+                    Sync creatives
+                </button>
+            </form>
+        {% endif %}
+    </section>
+
+    <section class="workspace-card">
+        <div class="eyebrow">
+            Creative test
+        </div>
+
+        <h2>
+            C1 vs C2
+        </h2>
+
+        {% if creatives %}
+
+            <div class="release-grid">
+
+                {% for asset in creatives %}
+
+                    <article class="release-card">
+                        <div class="eyebrow">
+                            Creative {{ loop.index }}
+                        </div>
+
+                        <h3>
+                            {{ asset.file_name or asset.name }}
+                        </h3>
+
+                        <div class="muted">
+                            {{ asset.asset_type }}
+                        </div>
+
+                        {% if asset.source == "dropbox" %}
+                            <p class="muted">
+                                Dropbox-backed
+                            </p>
+                        {% endif %}
+                    </article>
+
+                {% endfor %}
+
+            </div>
+
+        {% else %}
+
+            <p>
+                No playlist creatives synced yet.
+            </p>
+
+        {% endif %}
+    </section>
+
+    <section class="workspace-card">
+        <div class="eyebrow">
+            Meta
+        </div>
+
+        <h2>
+            Campaign build
+        </h2>
+
+        <p>
+            Meta launch is intentionally not enabled yet.
+        </p>
+
+        <p class="muted">
+            The current MMI ad-set launcher optimizes for
+            Pixel Content View. This experiment links directly
+            to Spotify, so a direct-link traffic mode needs to
+            be added before campaign creation is enabled.
+        </p>
+    </section>
+
+</div>
+
+</body>
+</html>

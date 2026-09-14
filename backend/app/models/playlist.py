@@ -21,5 +21,7 @@ class Playlist(Base):
     spotify_url = Column(String, nullable=True)
     artwork_url = Column(String, nullable=True)
 
+    promo_folder_url = Column(String, nullable=True)
+
     description = Column(Text, nullable=True)
     playlist_type = Column(String, nullable=False, default="artist_catalog")
