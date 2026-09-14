@@ -128,6 +128,343 @@ def get_campaign_plan(
     return campaign_plan
 
 
+def set_plan_meta_audience(
+    db,
+    campaign_plan: MetaCampaignPlan,
+    meta_audience_id: int,
+    roles_to_reset: set[str],
+) -> MetaAudience:
+    audience = (
+        db.query(MetaAudience)
+        .filter(
+            MetaAudience.id == meta_audience_id
+        )
+        .one_or_none()
+    )
+
+    if audience is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Meta audience not found.",
+        )
+
+    campaign_plan.meta_audience_id = audience.id
+
+    variants = (
+        db.query(MetaCampaignVariant)
+        .filter(
+            MetaCampaignVariant.meta_campaign_plan_id
+            == campaign_plan.id,
+            MetaCampaignVariant.role.in_(
+                list(roles_to_reset)
+            ),
+        )
+        .all()
+    )
+
+    for variant in variants:
+        for link in list(variant.interests):
+            if (
+                link.meta_interest.id
+                not in BASE_PLATFORM_IDS
+            ):
+                db.delete(link)
+
+        variant.name = "Not selected"
+
+    db.flush()
+
+    sync_campaign_cells(
+        db,
+        campaign_plan,
+    )
+
+    return audience
+
+
+def set_plan_base_platform(
+    db,
+    campaign_plan: MetaCampaignPlan,
+    interest_id: int,
+) -> MetaInterest:
+    if interest_id not in BASE_PLATFORM_IDS:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid base platform.",
+        )
+
+    platform_interest = (
+        db.query(MetaInterest)
+        .filter(
+            MetaInterest.id == interest_id
+        )
+        .one_or_none()
+    )
+
+    if platform_interest is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Platform interest not found.",
+        )
+
+    variants = (
+        db.query(MetaCampaignVariant)
+        .filter(
+            MetaCampaignVariant.meta_campaign_plan_id
+            == campaign_plan.id
+        )
+        .all()
+    )
+
+    for variant in variants:
+        for link in list(variant.interests):
+            if (
+                link.meta_interest.id
+                in BASE_PLATFORM_IDS
+            ):
+                db.delete(link)
+
+        db.flush()
+
+        db.add(
+            MetaCampaignVariantInterest(
+                meta_campaign_variant_id=variant.id,
+                meta_interest_id=platform_interest.id,
+            )
+        )
+
+    db.flush()
+
+    return platform_interest
+
+
+def set_variant_targeting_interest(
+    db,
+    campaign_plan: MetaCampaignPlan,
+    role: str,
+    meta_interest_id: str,
+) -> MetaCampaignVariant:
+    variant = (
+        db.query(MetaCampaignVariant)
+        .filter(
+            MetaCampaignVariant.meta_campaign_plan_id
+            == campaign_plan.id,
+            MetaCampaignVariant.role == role,
+        )
+        .one_or_none()
+    )
+
+    if variant is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Campaign variant not found.",
+        )
+
+    # Remove previous non-platform targeting while
+    # preserving Spotify / Apple Music.
+    for link in list(variant.interests):
+        if (
+            link.meta_interest.id
+            not in BASE_PLATFORM_IDS
+        ):
+            db.delete(link)
+
+    db.flush()
+
+    if (
+        meta_interest_id
+        == ECO_CONSCIOUS_AFRICAN_MUSIC["key"]
+    ):
+        for (
+            recipe_meta_id,
+            recipe_name,
+        ) in ECO_CONSCIOUS_AFRICAN_MUSIC["interests"]:
+
+            interest = (
+                db.query(MetaInterest)
+                .filter(
+                    MetaInterest.meta_interest_id
+                    == recipe_meta_id
+                )
+                .one_or_none()
+            )
+
+            if interest is None:
+                interest = MetaInterest(
+                    meta_interest_id=recipe_meta_id,
+                    name=recipe_name,
+                )
+                db.add(interest)
+                db.flush()
+
+            db.add(
+                MetaCampaignVariantInterest(
+                    meta_campaign_variant_id=variant.id,
+                    meta_interest_id=interest.id,
+                )
+            )
+
+        variant.name = (
+            ECO_CONSCIOUS_AFRICAN_MUSIC["name"]
+        )
+
+    else:
+        interest = (
+            db.query(MetaInterest)
+            .filter(
+                MetaInterest.meta_interest_id
+                == meta_interest_id
+            )
+            .one_or_none()
+        )
+
+        if interest is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Meta interest not found.",
+            )
+
+        db.add(
+            MetaCampaignVariantInterest(
+                meta_campaign_variant_id=variant.id,
+                meta_interest_id=interest.id,
+            )
+        )
+
+        variant.name = interest.name
+
+    db.flush()
+
+    sync_campaign_cells(
+        db,
+        campaign_plan,
+    )
+
+    return variant
+
+
+def apply_country_preset_to_plan(
+    db,
+    campaign_plan: MetaCampaignPlan,
+    country_preset_id: int,
+) -> CountryPreset:
+    preset = (
+        db.query(CountryPreset)
+        .filter(
+            CountryPreset.id == country_preset_id
+        )
+        .one_or_none()
+    )
+
+    if preset is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Country preset not found.",
+        )
+
+    preset_links = (
+        db.query(CountryPresetCountry)
+        .filter(
+            CountryPresetCountry.country_preset_id
+            == preset.id
+        )
+        .all()
+    )
+
+    (
+        db.query(MetaCampaignPlanCountry)
+        .filter(
+            MetaCampaignPlanCountry.meta_campaign_plan_id
+            == campaign_plan.id
+        )
+        .delete(
+            synchronize_session=False
+        )
+    )
+
+    for link in preset_links:
+        db.add(
+            MetaCampaignPlanCountry(
+                meta_campaign_plan_id=
+                    campaign_plan.id,
+                country_id=link.country_id,
+            )
+        )
+
+    campaign_plan.country_preset_id = preset.id
+    campaign_plan.country_preset = preset.name
+
+    db.flush()
+
+    return preset
+
+
+def add_country_to_plan(
+    db,
+    campaign_plan: MetaCampaignPlan,
+    country_id: int,
+) -> Country:
+    country = (
+        db.query(Country)
+        .filter(
+            Country.id == country_id
+        )
+        .one_or_none()
+    )
+
+    if country is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Country not found.",
+        )
+
+    existing = (
+        db.query(MetaCampaignPlanCountry)
+        .filter(
+            MetaCampaignPlanCountry.meta_campaign_plan_id
+            == campaign_plan.id,
+            MetaCampaignPlanCountry.country_id
+            == country.id,
+        )
+        .one_or_none()
+    )
+
+    if existing is None:
+        db.add(
+            MetaCampaignPlanCountry(
+                meta_campaign_plan_id=
+                    campaign_plan.id,
+                country_id=country.id,
+            )
+        )
+
+    db.flush()
+
+    return country
+
+
+def remove_country_from_plan(
+    db,
+    campaign_plan: MetaCampaignPlan,
+    country_id: int,
+) -> None:
+    link = (
+        db.query(MetaCampaignPlanCountry)
+        .filter(
+            MetaCampaignPlanCountry.meta_campaign_plan_id
+            == campaign_plan.id,
+            MetaCampaignPlanCountry.country_id
+            == country_id,
+        )
+        .one_or_none()
+    )
+
+    if link is not None:
+        db.delete(link)
+
+    db.flush()
+
+
 def sync_campaign_cells(
     db,
     campaign_plan: MetaCampaignPlan,
@@ -260,54 +597,14 @@ def set_meta_audience(
             release_id,
         )
 
-        audience = (
-            db.query(MetaAudience)
-            .filter(
-                MetaAudience.id == meta_audience_id
-            )
-            .one_or_none()
-        )
-
-        if audience is None:
-            raise HTTPException(
-                status_code=404,
-                detail="Meta audience not found.",
-            )
-
-        campaign_plan.meta_audience_id = audience.id
-
-        # Changing the Meta Audience invalidates the
-        # comparator interests.
-        #
-        # The base platform remains unchanged.
-        comparator_variants = (
-            db.query(MetaCampaignVariant)
-            .filter(
-                MetaCampaignVariant.meta_campaign_plan_id
-                == campaign_plan.id,
-                MetaCampaignVariant.role.in_(
-                    [
-                        "comparator_1",
-                        "comparator_2",
-                    ]
-                ),
-            )
-            .all()
-        )
-
-        for variant in comparator_variants:
-
-            for link in list(variant.interests):
-                if link.meta_interest.id not in BASE_PLATFORM_IDS:
-                    db.delete(link)
-
-            variant.name = "Not selected"
-
-        db.flush()
-
-        sync_campaign_cells(
+        set_plan_meta_audience(
             db,
             campaign_plan,
+            meta_audience_id,
+            roles_to_reset={
+                "comparator_1",
+                "comparator_2",
+            },
         )
 
         db.commit()
@@ -354,111 +651,11 @@ def set_comparator_interest(
             release_id,
         )
 
-        variant = (
-            db.query(MetaCampaignVariant)
-            .filter(
-                MetaCampaignVariant.meta_campaign_plan_id
-                == campaign_plan.id,
-                MetaCampaignVariant.role == role,
-            )
-            .one_or_none()
-        )
-
-        if variant is None:
-            raise HTTPException(
-                status_code=404,
-                detail="Campaign variant not found.",
-            )
-
-        # Remove the previous comparator targeting.
-        #
-        # Keep Spotify or Apple Music as the
-        # shared base platform.
-        for link in list(variant.interests):
-            if link.meta_interest.id not in BASE_PLATFORM_IDS:
-                db.delete(link)
-
-        db.flush()
-
-        # -------------------------------------------------
-        # Misumena identity recipe
-        # -------------------------------------------------
-
-        if (
-            meta_interest_id
-            == ECO_CONSCIOUS_AFRICAN_MUSIC["key"]
-        ):
-            for (
-                recipe_meta_id,
-                recipe_name,
-            ) in ECO_CONSCIOUS_AFRICAN_MUSIC["interests"]:
-
-                interest = (
-                    db.query(MetaInterest)
-                    .filter(
-                        MetaInterest.meta_interest_id
-                        == recipe_meta_id
-                    )
-                    .one_or_none()
-                )
-
-                # Historical Meta targeting gives us the
-                # stable Meta IDs. If an interest is not yet
-                # in the local library, preserve it locally.
-                if interest is None:
-                    interest = MetaInterest(
-                        meta_interest_id=recipe_meta_id,
-                        name=recipe_name,
-                    )
-
-                    db.add(interest)
-                    db.flush()
-
-                db.add(
-                    MetaCampaignVariantInterest(
-                        meta_campaign_variant_id=variant.id,
-                        meta_interest_id=interest.id,
-                    )
-                )
-
-            variant.name = (
-                ECO_CONSCIOUS_AFRICAN_MUSIC["name"]
-            )
-
-        # -------------------------------------------------
-        # Single-interest comparator
-        # -------------------------------------------------
-
-        else:
-            interest = (
-                db.query(MetaInterest)
-                .filter(
-                    MetaInterest.meta_interest_id
-                    == meta_interest_id
-                )
-                .one_or_none()
-            )
-
-            if interest is None:
-                raise HTTPException(
-                    status_code=404,
-                    detail="Meta interest not found.",
-                )
-
-            db.add(
-                MetaCampaignVariantInterest(
-                    meta_campaign_variant_id=variant.id,
-                    meta_interest_id=interest.id,
-                )
-            )
-
-            variant.name = interest.name
-
-        db.flush()
-
-        sync_campaign_cells(
+        set_variant_targeting_interest(
             db,
             campaign_plan,
+            role,
+            meta_interest_id,
         )
 
         db.commit()
@@ -487,12 +684,6 @@ def set_base_platform(
     release_id: int,
     interest_id: int,
 ):
-    if interest_id not in BASE_PLATFORM_IDS:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid base platform.",
-        )
-
     db = SessionLocal()
 
     try:
@@ -501,46 +692,11 @@ def set_base_platform(
             release_id,
         )
 
-        platform_interest = (
-            db.query(MetaInterest)
-            .filter(
-                MetaInterest.id == interest_id
-            )
-            .one_or_none()
+        set_plan_base_platform(
+            db,
+            campaign_plan,
+            interest_id,
         )
-
-        if platform_interest is None:
-            raise HTTPException(
-                status_code=404,
-                detail="Platform interest not found.",
-            )
-
-        variants = (
-            db.query(MetaCampaignVariant)
-            .filter(
-                MetaCampaignVariant.meta_campaign_plan_id
-                == campaign_plan.id
-            )
-            .all()
-        )
-
-        for variant in variants:
-
-            # Remove whichever base platform is
-            # currently present.
-            for link in list(variant.interests):
-                if link.meta_interest.id in BASE_PLATFORM_IDS:
-                    db.delete(link)
-
-            db.flush()
-
-            # Add the new base platform to every arm.
-            db.add(
-                MetaCampaignVariantInterest(
-                    meta_campaign_variant_id=variant.id,
-                    meta_interest_id=platform_interest.id,
-                )
-            )
 
         db.commit()
 
@@ -1355,57 +1511,10 @@ def apply_country_preset(
             release_id,
         )
 
-        preset = (
-            db.query(CountryPreset)
-            .filter(
-                CountryPreset.id
-                == country_preset_id
-            )
-            .one_or_none()
-        )
-
-        if preset is None:
-            raise HTTPException(
-                status_code=404,
-                detail="Country preset not found.",
-            )
-
-        preset_links = (
-            db.query(CountryPresetCountry)
-            .filter(
-                CountryPresetCountry.country_preset_id
-                == preset.id
-            )
-            .all()
-        )
-
-        # Applying a preset resets the release-specific
-        # country selection to exactly that preset.
-        db.query(
-            MetaCampaignPlanCountry
-        ).filter(
-            MetaCampaignPlanCountry.meta_campaign_plan_id
-            == campaign_plan.id
-        ).delete(
-            synchronize_session=False
-        )
-
-        for link in preset_links:
-            db.add(
-                MetaCampaignPlanCountry(
-                    meta_campaign_plan_id=
-                        campaign_plan.id,
-                    country_id=
-                        link.country_id,
-                )
-            )
-
-        campaign_plan.country_preset_id = (
-            preset.id
-        )
-
-        campaign_plan.country_preset = (
-            preset.name
+        apply_country_preset_to_plan(
+            db,
+            campaign_plan,
+            country_preset_id,
         )
 
         db.commit()
@@ -1438,40 +1547,11 @@ def add_campaign_country(
             release_id,
         )
 
-        country = (
-            db.query(Country)
-            .filter(
-                Country.id == country_id
-            )
-            .one_or_none()
+        add_country_to_plan(
+            db,
+            campaign_plan,
+            country_id,
         )
-
-        if country is None:
-            raise HTTPException(
-                status_code=404,
-                detail="Country not found.",
-            )
-
-        existing = (
-            db.query(MetaCampaignPlanCountry)
-            .filter(
-                MetaCampaignPlanCountry.meta_campaign_plan_id
-                    == campaign_plan.id,
-                MetaCampaignPlanCountry.country_id
-                    == country.id,
-            )
-            .one_or_none()
-        )
-
-        if existing is None:
-            db.add(
-                MetaCampaignPlanCountry(
-                    meta_campaign_plan_id=
-                        campaign_plan.id,
-                    country_id=
-                        country.id,
-                )
-            )
 
         db.commit()
 
@@ -1503,19 +1583,11 @@ def remove_campaign_country(
             release_id,
         )
 
-        link = (
-            db.query(MetaCampaignPlanCountry)
-            .filter(
-                MetaCampaignPlanCountry.meta_campaign_plan_id
-                    == campaign_plan.id,
-                MetaCampaignPlanCountry.country_id
-                    == country_id,
-            )
-            .one_or_none()
+        remove_country_from_plan(
+            db,
+            campaign_plan,
+            country_id,
         )
-
-        if link is not None:
-            db.delete(link)
 
         db.commit()
 
