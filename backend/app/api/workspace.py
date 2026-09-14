@@ -3098,7 +3098,8 @@ def playlist_promotion(
         db.query(Asset)
         .filter(
             Asset.playlist_id == playlist.id,
-            Asset.asset_type == "short_form_video",
+            Asset.asset_type
+            == "short_form_video",
         )
         .order_by(
             Asset.id.asc()
@@ -3110,23 +3111,6 @@ def playlist_promotion(
         db.query(MetaAudience)
         .order_by(
             MetaAudience.id.asc()
-        )
-        .all()
-    )
-
-    # Real Meta interests available for playlist targeting.
-    # Exclude Spotify / Apple Music base-platform interests;
-    # this experiment is direct traffic to Spotify.
-    playlist_interest_options = (
-        db.query(MetaInterest)
-        .filter(
-            MetaInterest.meta_interest_id.isnot(None)
-        )
-        .filter(
-            ~MetaInterest.id.in_([14, 138])
-        )
-        .order_by(
-            MetaInterest.name.asc()
         )
         .all()
     )
@@ -3147,7 +3131,8 @@ def playlist_promotion(
         campaign_variants = (
             db.query(MetaCampaignVariant)
             .filter(
-                MetaCampaignVariant.meta_campaign_plan_id
+                MetaCampaignVariant
+                .meta_campaign_plan_id
                 == campaign_plan.id
             )
             .order_by(
@@ -3159,7 +3144,8 @@ def playlist_promotion(
         campaign_cells = (
             db.query(MetaCampaignCell)
             .filter(
-                MetaCampaignCell.meta_campaign_plan_id
+                MetaCampaignCell
+                .meta_campaign_plan_id
                 == campaign_plan.id
             )
             .order_by(
@@ -3168,13 +3154,100 @@ def playlist_promotion(
             .all()
         )
 
-    selected_playlist_interest_ids = []
+    targeting_variant = (
+        campaign_variants[0]
+        if len(campaign_variants) == 1
+        else None
+    )
 
-    if campaign_variants:
-        selected_playlist_interest_ids = [
-            link.meta_interest_id
-            for link in campaign_variants[0].interests
-        ]
+    # Same curated candidate-interest system as Releases.
+    candidate_interest_options = []
+
+    if (
+        campaign_plan is not None
+        and campaign_plan.meta_audience is not None
+    ):
+        candidate_interest_options = (
+            get_candidate_interests_for_audience(
+                campaign_plan.meta_audience.name
+            )
+        )
+
+    # Same base-platform library as Releases.
+    base_platform_options = (
+        db.query(MetaInterest)
+        .filter(
+            MetaInterest.id.in_(
+                BASE_PLATFORM_IDS
+            )
+        )
+        .order_by(
+            MetaInterest.name
+        )
+        .all()
+    )
+
+    base_platform_interest = None
+
+    if targeting_variant is not None:
+        for link in targeting_variant.interests:
+            if (
+                link.meta_interest.id
+                in BASE_PLATFORM_IDS
+            ):
+                base_platform_interest = (
+                    link.meta_interest
+                )
+                break
+
+    # Same country presets and country library as Releases.
+    country_presets = (
+        db.query(CountryPreset)
+        .order_by(
+            CountryPreset.name
+        )
+        .all()
+    )
+
+    all_countries = (
+        db.query(Country)
+        .order_by(
+            Country.name
+        )
+        .all()
+    )
+
+    selected_country_preset = None
+    selected_countries = []
+
+    if campaign_plan is not None:
+        if campaign_plan.country_preset_id:
+            selected_country_preset = (
+                db.query(CountryPreset)
+                .filter(
+                    CountryPreset.id
+                    == campaign_plan.country_preset_id
+                )
+                .one_or_none()
+            )
+
+        selected_countries = (
+            db.query(Country)
+            .join(
+                MetaCampaignPlanCountry,
+                Country.id
+                == MetaCampaignPlanCountry.country_id,
+            )
+            .filter(
+                MetaCampaignPlanCountry
+                .meta_campaign_plan_id
+                == campaign_plan.id
+            )
+            .order_by(
+                Country.name
+            )
+            .all()
+        )
 
     return templates.TemplateResponse(
         request=request,
@@ -3183,13 +3256,29 @@ def playlist_promotion(
             "playlist": playlist,
             "creatives": creatives,
             "meta_audiences": meta_audiences,
-            "playlist_interest_options":
-                playlist_interest_options,
-            "selected_playlist_interest_ids":
-                selected_playlist_interest_ids,
             "campaign_plan": campaign_plan,
-            "campaign_variants": campaign_variants,
-            "campaign_cells": campaign_cells,
+            "campaign_variants":
+                campaign_variants,
+            "campaign_cells":
+                campaign_cells,
+            "targeting_variant":
+                targeting_variant,
+            "candidate_interest_options":
+                candidate_interest_options,
+            "base_platform_options":
+                base_platform_options,
+            "base_platform_interest":
+                base_platform_interest,
+            "country_presets":
+                country_presets,
+            "all_countries":
+                all_countries,
+            "selected_country_preset":
+                selected_country_preset,
+            "selected_countries":
+                selected_countries,
+            "selected_country_count":
+                len(selected_countries),
             "experiment_status":
                 request.query_params.get(
                     "experiment_status"
@@ -3216,16 +3305,8 @@ def playlist_promotion(
 def create_playlist_experiment(
     playlist_id: int,
     meta_audience_id: int = Form(...),
-    meta_interest_ids: list[int] = Form(...),
 ):
     from app.models.playlist import Playlist
-    from app.models.meta_campaign_variant_interest import (
-        MetaCampaignVariantInterest,
-    )
-
-    from app.api.campaign_builder import (
-        sync_campaign_cells,
-    )
 
     db = SessionLocal()
 
@@ -3263,7 +3344,8 @@ def create_playlist_experiment(
         audience = (
             db.query(MetaAudience)
             .filter(
-                MetaAudience.id == meta_audience_id
+                MetaAudience.id
+                == meta_audience_id
             )
             .one_or_none()
         )
@@ -3273,50 +3355,11 @@ def create_playlist_experiment(
                 "Selected Meta audience was not found."
             )
 
-        selected_interest_ids = set(
-            meta_interest_ids
-        )
-
-        if not selected_interest_ids:
-            raise RuntimeError(
-                "Select at least one targeting interest."
-            )
-
-        if selected_interest_ids & {14, 138}:
-            raise RuntimeError(
-                "Spotify and Apple Music cannot be used "
-                "as targeting interests for this experiment."
-            )
-
-        targeting_interests = (
-            db.query(MetaInterest)
-            .filter(
-                MetaInterest.id.in_(
-                    selected_interest_ids
-                )
-            )
-            .all()
-        )
-
-        if (
-            len(targeting_interests)
-            != len(selected_interest_ids)
-        ):
-            raise RuntimeError(
-                "One or more selected Meta interests "
-                "could not be found."
-            )
-
-        for interest in targeting_interests:
-            if not interest.meta_interest_id:
-                raise RuntimeError(
-                    f"{interest.name} has no Meta interest ID."
-                )
-
         creatives = (
             db.query(Asset)
             .filter(
-                Asset.playlist_id == playlist.id,
+                Asset.playlist_id
+                == playlist.id,
                 Asset.asset_type
                 == "short_form_video",
             )
@@ -3340,7 +3383,8 @@ def create_playlist_experiment(
             optimization_goal="LINK_CLICKS",
             conversion_event="LINK_CLICKS",
             meta_pixel_id=None,
-            destination_url=playlist.spotify_url,
+            destination_url=
+                playlist.spotify_url,
             call_to_action="LISTEN_NOW",
             total_budget=35.00,
             status="draft",
@@ -3355,7 +3399,7 @@ def create_playlist_experiment(
         variant = MetaCampaignVariant(
             meta_campaign_plan_id=
                 campaign_plan.id,
-            name=audience.name,
+            name="Not selected",
             campaign_type="interest",
             role="control",
             status="draft",
@@ -3363,17 +3407,6 @@ def create_playlist_experiment(
         )
 
         db.add(variant)
-        db.flush()
-
-        for interest in targeting_interests:
-            db.add(
-                MetaCampaignVariantInterest(
-                    meta_campaign_variant_id=
-                        variant.id,
-                    meta_interest_id=
-                        interest.id,
-                )
-            )
 
         for creative in creatives:
             db.add(
@@ -3384,37 +3417,14 @@ def create_playlist_experiment(
                 )
             )
 
-        db.flush()
-
-        sync_campaign_cells(
-            db,
-            campaign_plan,
-        )
-
-        cell_count = (
-            db.query(MetaCampaignCell)
-            .filter(
-                MetaCampaignCell.meta_campaign_plan_id
-                == campaign_plan.id
-            )
-            .count()
-        )
-
-        if cell_count != 2:
-            raise RuntimeError(
-                "Expected exactly 2 campaign cells; "
-                f"found {cell_count}."
-            )
-
         db.commit()
 
         params = urlencode(
             {
                 "experiment_status": "success",
                 "experiment_message": (
-                    "Draft experiment created: "
-                    "1 audience × 2 creatives "
-                    "= 2 campaign cells."
+                    "Draft created. "
+                    "Choose targeting and countries."
                 ),
             }
         )
@@ -3434,192 +3444,8 @@ def create_playlist_experiment(
         params = urlencode(
             {
                 "experiment_status": "error",
-                "experiment_message": str(exc),
-            }
-        )
-
-        return RedirectResponse(
-            url=(
-                f"/workspace/playlists/"
-                f"{playlist_id}/promotion?"
-                f"{params}"
-            ),
-            status_code=303,
-        )
-
-    finally:
-        db.close()
-
-
-@router.post(
-    "/playlists/{playlist_id}/promotion/targeting"
-)
-def update_playlist_targeting(
-    playlist_id: int,
-    meta_audience_id: int = Form(...),
-    meta_interest_ids: list[int] = Form(...),
-):
-    from app.models.playlist import Playlist
-    from app.models.meta_campaign_variant_interest import (
-        MetaCampaignVariantInterest,
-    )
-
-    db = SessionLocal()
-
-    try:
-        playlist = db.get(
-            Playlist,
-            playlist_id,
-        )
-
-        if playlist is None:
-            raise HTTPException(
-                status_code=404,
-                detail="Playlist not found.",
-            )
-
-        campaign_plan = (
-            db.query(MetaCampaignPlan)
-            .filter(
-                MetaCampaignPlan.playlist_id
-                == playlist.id
-            )
-            .one_or_none()
-        )
-
-        if campaign_plan is None:
-            raise RuntimeError(
-                "Playlist campaign plan not found."
-            )
-
-        if campaign_plan.meta_campaign_record_id is not None:
-            raise RuntimeError(
-                "Targeting cannot be changed after "
-                "a Meta campaign has been created."
-            )
-
-        audience = (
-            db.query(MetaAudience)
-            .filter(
-                MetaAudience.id
-                == meta_audience_id
-            )
-            .one_or_none()
-        )
-
-        if audience is None:
-            raise RuntimeError(
-                "Selected Meta audience was not found."
-            )
-
-        selected_interest_ids = set(
-            meta_interest_ids
-        )
-
-        if not selected_interest_ids:
-            raise RuntimeError(
-                "Select at least one targeting interest."
-            )
-
-        if selected_interest_ids & {14, 138}:
-            raise RuntimeError(
-                "Spotify and Apple Music cannot be used "
-                "as targeting interests for this experiment."
-            )
-
-        targeting_interests = (
-            db.query(MetaInterest)
-            .filter(
-                MetaInterest.id.in_(
-                    selected_interest_ids
-                )
-            )
-            .all()
-        )
-
-        if (
-            len(targeting_interests)
-            != len(selected_interest_ids)
-        ):
-            raise RuntimeError(
-                "One or more selected Meta interests "
-                "could not be found."
-            )
-
-        for interest in targeting_interests:
-            if not interest.meta_interest_id:
-                raise RuntimeError(
-                    f"{interest.name} has no Meta interest ID."
-                )
-
-        variants = (
-            db.query(MetaCampaignVariant)
-            .filter(
-                MetaCampaignVariant.meta_campaign_plan_id
-                == campaign_plan.id
-            )
-            .all()
-        )
-
-        if len(variants) != 1:
-            raise RuntimeError(
-                "Playlist experiment must have exactly "
-                "one audience variant."
-            )
-
-        variant = variants[0]
-
-        campaign_plan.meta_audience_id = audience.id
-        variant.name = audience.name
-
-        (
-            db.query(MetaCampaignVariantInterest)
-            .filter(
-                MetaCampaignVariantInterest
-                .meta_campaign_variant_id
-                == variant.id
-            )
-            .delete(
-                synchronize_session=False
-            )
-        )
-
-        for interest in targeting_interests:
-            db.add(
-                MetaCampaignVariantInterest(
-                    meta_campaign_variant_id=
-                        variant.id,
-                    meta_interest_id=
-                        interest.id,
-                )
-            )
-
-        db.commit()
-
-        params = urlencode(
-            {
-                "experiment_status": "success",
                 "experiment_message":
-                    "Playlist targeting saved.",
-            }
-        )
-
-        return RedirectResponse(
-            url=(
-                f"/workspace/playlists/"
-                f"{playlist_id}/promotion?"
-                f"{params}"
-            ),
-            status_code=303,
-        )
-
-    except Exception as exc:
-        db.rollback()
-
-        params = urlencode(
-            {
-                "experiment_status": "error",
-                "experiment_message": str(exc),
+                    str(exc),
             }
         )
 
@@ -3634,6 +3460,8 @@ def update_playlist_targeting(
 
     finally:
         db.close()
+
+
 
 
 @router.post(

@@ -231,10 +231,6 @@
         </h2>
 
         {% if campaign_plan %}
-            <p>
-                Draft campaign plan
-                #{{ campaign_plan.id }}
-            </p>
 
             <div class="release-grid">
                 <article class="release-card">
@@ -274,89 +270,314 @@
                 </article>
             </div>
 
-            {% if campaign_variants %}
-                <form
-                    method="post"
-                    action="/workspace/playlists/{{ playlist.id }}/promotion/targeting"
-                >
-                    <label>
-                        Audience family
-                    </label>
+            <h3>Targeting</h3>
 
-                    <select
-                        name="meta_audience_id"
-                        required
-                    >
-                        {% for audience in meta_audiences %}
-                            <option
-                                value="{{ audience.id }}"
-                                {% if campaign_plan.meta_audience_id == audience.id %}
-                                    selected
-                                {% endif %}
-                            >
-                                {{ audience.name }}
-                            </option>
-                        {% endfor %}
-                    </select>
+            <dl class="campaign-plan-details">
 
-                    <div style="margin-top: 16px;">
-                        <label>
-                            Targeting interests
-                        </label>
-
-                        <select
-                            name="meta_interest_ids"
-                            multiple
-                            required
-                            size="12"
-                            style="width: 100%;"
+                <div>
+                    <dt>Meta audience</dt>
+                    <dd>
+                        <form
+                            method="post"
+                            class="campaign-interest-form"
+                            onsubmit="
+                                this.action =
+                                '/workspace/playlists/{{ playlist.id }}/promotion/meta-audience/'
+                                + this.meta_audience_id.value;
+                            "
                         >
-                            {% for interest in playlist_interest_options %}
-                                <option
-                                    value="{{ interest.id }}"
-                                    {% if interest.id in selected_playlist_interest_ids %}
-                                        selected
-                                    {% endif %}
-                                >
-                                    {{ interest.name }}
+                            <select
+                                name="meta_audience_id"
+                                onchange="this.form.requestSubmit()"
+                            >
+                                {% for audience in meta_audiences %}
+                                    <option
+                                        value="{{ audience.id }}"
+                                        {% if campaign_plan.meta_audience_id == audience.id %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        {{ audience.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </form>
+                    </dd>
+                </div>
+
+                <div>
+                    <dt>Base platform</dt>
+                    <dd>
+                        <form
+                            method="post"
+                            class="campaign-interest-form"
+                            onsubmit="
+                                if (!this.base_platform_id.value) {
+                                    return false;
+                                }
+                                this.action =
+                                '/workspace/playlists/{{ playlist.id }}/promotion/base-platform/'
+                                + this.base_platform_id.value;
+                            "
+                        >
+                            <select
+                                name="base_platform_id"
+                                onchange="
+                                    if (this.value) {
+                                        this.form.requestSubmit();
+                                    }
+                                "
+                            >
+                                <option value="">
+                                    Select base platform
                                 </option>
-                            {% endfor %}
-                        </select>
 
-                        <p class="muted">
-                            Select one or more actual Meta interests.
-                            On Mac, hold Command to select several.
-                        </p>
-                    </div>
+                                {% for interest in base_platform_options %}
+                                    <option
+                                        value="{{ interest.id }}"
+                                        {% if base_platform_interest and base_platform_interest.id == interest.id %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        {% if interest.id == 138 %}
+                                            Spotify
+                                        {% elif interest.id == 14 %}
+                                            Apple Music
+                                        {% else %}
+                                            {{ interest.name }}
+                                        {% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </form>
+                    </dd>
+                </div>
 
-                    <div style="margin-top: 12px;">
-                        <button type="submit">
-                            Save targeting
-                        </button>
-                    </div>
-                </form>
-            {% endif %}
+                <div>
+                    <dt>Targeting interest</dt>
+                    <dd>
+                        {% if targeting_variant %}
+                            <form
+                                method="post"
+                                class="campaign-interest-form"
+                                onsubmit="
+                                    if (!this.meta_interest_id.value) {
+                                        return false;
+                                    }
+                                    this.action =
+                                    '/workspace/playlists/{{ playlist.id }}/promotion/targeting/'
+                                    + this.meta_interest_id.value;
+                                "
+                            >
+                                <select
+                                    name="meta_interest_id"
+                                    onchange="
+                                        if (this.value) {
+                                            this.form.requestSubmit();
+                                        }
+                                    "
+                                >
+                                    <option value="">
+                                        Select targeting interest
+                                    </option>
+
+                                    <option
+                                        value="recipe:eco_conscious_african_music"
+                                        {% if targeting_variant.name == "Eco-conscious African Music" %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        Eco-conscious African Music
+                                        — Misumena Identity
+                                    </option>
+
+                                    {% for interest in candidate_interest_options %}
+                                        <option
+                                            value="{{ interest.meta_interest_id }}"
+                                            {% if interest.name == targeting_variant.name %}
+                                                selected
+                                            {% endif %}
+                                        >
+                                            {{ interest.name }}
+                                            —
+                                            {{ "%.1f"|format(interest.audience_size / 1000000) }}M
+                                            —
+                                            relevance {{ interest.relevance_score }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </form>
+
+                            {% if targeting_variant.interests %}
+                                <div class="campaign-variant-recipe">
+                                    {% for link in targeting_variant.interests %}
+                                        {{ link.meta_interest.name }}{% if not loop.last %} + {% endif %}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                    </dd>
+                </div>
+
+                <div>
+                    <dt>Countries</dt>
+                    <dd>
+                        <div style="
+                            display:flex;
+                            flex-direction:column;
+                            gap:12px;
+                        ">
+                            <form
+                                method="post"
+                                onsubmit="
+                                    if (!this.country_preset_id.value) {
+                                        return false;
+                                    }
+                                    this.action =
+                                    '/workspace/playlists/{{ playlist.id }}/promotion/countries/preset/'
+                                    + this.country_preset_id.value;
+                                "
+                            >
+                                <div style="
+                                    display:flex;
+                                    gap:8px;
+                                    align-items:center;
+                                    flex-wrap:wrap;
+                                ">
+                                    <select
+                                        name="country_preset_id"
+                                    >
+                                        <option value="">
+                                            Select preset
+                                        </option>
+
+                                        {% for preset in country_presets %}
+                                            <option
+                                                value="{{ preset.id }}"
+                                                {% if selected_country_preset and selected_country_preset.id == preset.id %}
+                                                    selected
+                                                {% endif %}
+                                            >
+                                                {{ preset.name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+
+                                    <button type="submit">
+                                        Apply preset
+                                    </button>
+                                </div>
+                            </form>
+
+                            <form
+                                method="post"
+                                onsubmit="
+                                    if (!this.country_id.value) {
+                                        return false;
+                                    }
+                                    this.action =
+                                    '/workspace/playlists/{{ playlist.id }}/promotion/countries/add/'
+                                    + this.country_id.value;
+                                "
+                            >
+                                <div style="
+                                    display:flex;
+                                    gap:8px;
+                                    align-items:center;
+                                    flex-wrap:wrap;
+                                ">
+                                    <select name="country_id">
+                                        <option value="">
+                                            Add country
+                                        </option>
+
+                                        {% for country in all_countries %}
+                                            <option value="{{ country.id }}">
+                                                {{ country.name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+
+                                    <button type="submit">
+                                        Add
+                                    </button>
+                                </div>
+                            </form>
+
+                            {% if selected_countries %}
+                                <details
+                                    class="country-details"
+                                    open
+                                >
+                                    <summary>
+                                        {{ selected_country_count }}
+                                        selected countries
+                                    </summary>
+
+                                    <div style="
+                                        display:flex;
+                                        flex-direction:column;
+                                        gap:6px;
+                                        margin-top:10px;
+                                    ">
+                                        {% for country in selected_countries %}
+                                            <div style="
+                                                display:flex;
+                                                gap:8px;
+                                                align-items:center;
+                                                justify-content:space-between;
+                                                max-width:340px;
+                                            ">
+                                                <span>
+                                                    {{ country.name }}
+                                                </span>
+
+                                                <form
+                                                    method="post"
+                                                    action="/workspace/playlists/{{ playlist.id }}/promotion/countries/remove/{{ country.id }}"
+                                                >
+                                                    <button
+                                                        type="submit"
+                                                        class="secondary-button"
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </details>
+                            {% else %}
+                                <span>
+                                    No countries selected.
+                                </span>
+                            {% endif %}
+                        </div>
+                    </dd>
+                </div>
+
+            </dl>
 
             <p class="muted">
-                Direct Spotify destination.
-                No Meta pixel.
+                Direct Spotify destination:
+                {{ campaign_plan.destination_url }}
             </p>
 
             <p class="muted">
-                Targeting interests are stored in MMI.
-                Country targeting and playlist launch
-                configuration still need to be completed.
+                No Meta pixel. One targeting arm ×
+                two creatives.
             </p>
 
             <p class="muted">
-                No Meta campaign, ad set, or ad has been
-                created by this draft.
+                No Meta campaign, ad set, or ad is created
+                by these configuration controls.
             </p>
 
         {% else %}
+
             <p>
-                Create the local draft for the
-                one-audience × two-creative experiment.
+                Create the local one-audience ×
+                two-creative campaign draft.
             </p>
 
             {% if creatives | length == 2
@@ -367,7 +588,7 @@
                     action="/workspace/playlists/{{ playlist.id }}/promotion/experiment"
                 >
                     <label>
-                        Audience family
+                        Meta audience
                     </label>
 
                     <select
@@ -381,32 +602,6 @@
                         {% endfor %}
                     </select>
 
-                    <div style="margin-top: 16px;">
-                        <label>
-                            Targeting interests
-                        </label>
-
-                        <select
-                            name="meta_interest_ids"
-                            multiple
-                            required
-                            size="12"
-                            style="width: 100%;"
-                        >
-                            {% for interest in playlist_interest_options %}
-                                <option value="{{ interest.id }}">
-                                    {{ interest.name }}
-                                </option>
-                            {% endfor %}
-                        </select>
-
-                        <p class="muted">
-                            Select one or more actual Meta interests.
-                            On Mac, hold Command to select several.
-                        </p>
-                    </div>
-
-
                     <div style="margin-top: 12px;">
                         <button type="submit">
                             Create draft experiment
@@ -415,11 +610,12 @@
                 </form>
 
                 <p class="muted">
-                    This creates only local MMI planning
-                    records. It does not call Meta.
+                    This creates local planning records only.
+                    It does not call Meta.
                 </p>
 
             {% elif creatives | length != 2 %}
+
                 <p>
                     Exactly two synced creatives are required.
                     Currently found:
@@ -427,10 +623,13 @@
                 </p>
 
             {% else %}
+
                 <p>
                     No Meta audience families are available.
                 </p>
+
             {% endif %}
+
         {% endif %}
     </section>
 

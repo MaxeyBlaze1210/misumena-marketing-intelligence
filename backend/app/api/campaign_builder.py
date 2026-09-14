@@ -128,6 +128,46 @@ def get_campaign_plan(
     return campaign_plan
 
 
+def playlist_promotion_redirect(
+    playlist_id: int,
+    params: dict | None = None,
+) -> RedirectResponse:
+    url = (
+        f"/workspace/playlists/"
+        f"{playlist_id}/promotion"
+    )
+
+    if params:
+        url = f"{url}?{urlencode(params)}"
+
+    return RedirectResponse(
+        url=url,
+        status_code=303,
+    )
+
+
+def get_playlist_campaign_plan(
+    db,
+    playlist_id: int,
+) -> MetaCampaignPlan:
+    campaign_plan = (
+        db.query(MetaCampaignPlan)
+        .filter(
+            MetaCampaignPlan.playlist_id
+            == playlist_id
+        )
+        .one_or_none()
+    )
+
+    if campaign_plan is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Playlist campaign plan not found.",
+        )
+
+    return campaign_plan
+
+
 def set_plan_meta_audience(
     db,
     campaign_plan: MetaCampaignPlan,
@@ -702,6 +742,234 @@ def set_base_platform(
 
         return promotion_redirect(
             release_id
+        )
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
+# ---------------------------------------------------------
+# Playlist targeting
+# Reuses the same plan-level logic as Releases.
+# ---------------------------------------------------------
+
+@router.post(
+    "/playlists/{playlist_id}/promotion/"
+    "meta-audience/{meta_audience_id}"
+)
+def set_playlist_meta_audience(
+    playlist_id: int,
+    meta_audience_id: int,
+):
+    db = SessionLocal()
+
+    try:
+        campaign_plan = get_playlist_campaign_plan(
+            db,
+            playlist_id,
+        )
+
+        set_plan_meta_audience(
+            db,
+            campaign_plan,
+            meta_audience_id,
+            roles_to_reset={"control"},
+        )
+
+        db.commit()
+
+        return playlist_promotion_redirect(
+            playlist_id,
+            {
+                "experiment_status": "success",
+                "experiment_message":
+                    "Playlist audience updated.",
+            },
+        )
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
+@router.post(
+    "/playlists/{playlist_id}/promotion/"
+    "base-platform/{interest_id}"
+)
+def set_playlist_base_platform(
+    playlist_id: int,
+    interest_id: int,
+):
+    db = SessionLocal()
+
+    try:
+        campaign_plan = get_playlist_campaign_plan(
+            db,
+            playlist_id,
+        )
+
+        set_plan_base_platform(
+            db,
+            campaign_plan,
+            interest_id,
+        )
+
+        db.commit()
+
+        return playlist_promotion_redirect(
+            playlist_id
+        )
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
+@router.post(
+    "/playlists/{playlist_id}/promotion/"
+    "targeting/{meta_interest_id}"
+)
+def set_playlist_targeting_interest(
+    playlist_id: int,
+    meta_interest_id: str,
+):
+    db = SessionLocal()
+
+    try:
+        campaign_plan = get_playlist_campaign_plan(
+            db,
+            playlist_id,
+        )
+
+        set_variant_targeting_interest(
+            db,
+            campaign_plan,
+            "control",
+            meta_interest_id,
+        )
+
+        db.commit()
+
+        return playlist_promotion_redirect(
+            playlist_id
+        )
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
+@router.post(
+    "/playlists/{playlist_id}/promotion/"
+    "countries/preset/{country_preset_id}"
+)
+def apply_playlist_country_preset(
+    playlist_id: int,
+    country_preset_id: int,
+):
+    db = SessionLocal()
+
+    try:
+        campaign_plan = get_playlist_campaign_plan(
+            db,
+            playlist_id,
+        )
+
+        apply_country_preset_to_plan(
+            db,
+            campaign_plan,
+            country_preset_id,
+        )
+
+        db.commit()
+
+        return playlist_promotion_redirect(
+            playlist_id
+        )
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
+@router.post(
+    "/playlists/{playlist_id}/promotion/"
+    "countries/add/{country_id}"
+)
+def add_playlist_campaign_country(
+    playlist_id: int,
+    country_id: int,
+):
+    db = SessionLocal()
+
+    try:
+        campaign_plan = get_playlist_campaign_plan(
+            db,
+            playlist_id,
+        )
+
+        add_country_to_plan(
+            db,
+            campaign_plan,
+            country_id,
+        )
+
+        db.commit()
+
+        return playlist_promotion_redirect(
+            playlist_id
+        )
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
+@router.post(
+    "/playlists/{playlist_id}/promotion/"
+    "countries/remove/{country_id}"
+)
+def remove_playlist_campaign_country(
+    playlist_id: int,
+    country_id: int,
+):
+    db = SessionLocal()
+
+    try:
+        campaign_plan = get_playlist_campaign_plan(
+            db,
+            playlist_id,
+        )
+
+        remove_country_from_plan(
+            db,
+            campaign_plan,
+            country_id,
+        )
+
+        db.commit()
+
+        return playlist_promotion_redirect(
+            playlist_id
         )
 
     except Exception:
