@@ -3082,7 +3082,6 @@ def playlist_promotion(
     db: Session = Depends(get_db),
 ):
     from app.models.playlist import Playlist
-    from app.models.asset import Asset
 
     playlist = db.get(
         Playlist,
@@ -3107,12 +3106,69 @@ def playlist_promotion(
         .all()
     )
 
+    meta_audiences = (
+        db.query(MetaAudience)
+        .order_by(
+            MetaAudience.id.asc()
+        )
+        .all()
+    )
+
+    campaign_plan = (
+        db.query(MetaCampaignPlan)
+        .filter(
+            MetaCampaignPlan.playlist_id
+            == playlist.id
+        )
+        .one_or_none()
+    )
+
+    campaign_variants = []
+    campaign_cells = []
+
+    if campaign_plan is not None:
+        campaign_variants = (
+            db.query(MetaCampaignVariant)
+            .filter(
+                MetaCampaignVariant.meta_campaign_plan_id
+                == campaign_plan.id
+            )
+            .order_by(
+                MetaCampaignVariant.id.asc()
+            )
+            .all()
+        )
+
+        campaign_cells = (
+            db.query(MetaCampaignCell)
+            .filter(
+                MetaCampaignCell.meta_campaign_plan_id
+                == campaign_plan.id
+            )
+            .order_by(
+                MetaCampaignCell.id.asc()
+            )
+            .all()
+        )
+
     return templates.TemplateResponse(
         request=request,
         name="workspace/playlist_promotion.html",
         context={
             "playlist": playlist,
             "creatives": creatives,
+            "meta_audiences": meta_audiences,
+            "campaign_plan": campaign_plan,
+            "campaign_variants": campaign_variants,
+            "campaign_cells": campaign_cells,
+            "experiment_status":
+                request.query_params.get(
+                    "experiment_status"
+                ),
+            "experiment_message":
+                request.query_params.get(
+                    "experiment_message"
+                ),
             "promo_asset_status":
                 request.query_params.get(
                     "promo_asset_status"
@@ -3123,6 +3179,192 @@ def playlist_promotion(
                 ),
         },
     )
+
+
+@router.post(
+    "/playlists/{playlist_id}/promotion/experiment"
+)
+def create_playlist_experiment(
+    playlist_id: int,
+    meta_audience_id: int = Form(...),
+):
+    from app.models.playlist import Playlist
+
+    from app.api.campaign_builder import (
+        sync_campaign_cells,
+    )
+
+    db = SessionLocal()
+
+    try:
+        playlist = db.get(
+            Playlist,
+            playlist_id,
+        )
+
+        if playlist is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Playlist not found.",
+            )
+
+        if not playlist.spotify_url:
+            raise RuntimeError(
+                "Playlist has no Spotify URL configured."
+            )
+
+        existing_plan = (
+            db.query(MetaCampaignPlan)
+            .filter(
+                MetaCampaignPlan.playlist_id
+                == playlist.id
+            )
+            .one_or_none()
+        )
+
+        if existing_plan is not None:
+            raise RuntimeError(
+                "Playlist campaign plan already exists."
+            )
+
+        audience = (
+            db.query(MetaAudience)
+            .filter(
+                MetaAudience.id == meta_audience_id
+            )
+            .one_or_none()
+        )
+
+        if audience is None:
+            raise RuntimeError(
+                "Selected Meta audience was not found."
+            )
+
+        creatives = (
+            db.query(Asset)
+            .filter(
+                Asset.playlist_id == playlist.id,
+                Asset.asset_type
+                == "short_form_video",
+            )
+            .order_by(
+                Asset.id.asc()
+            )
+            .all()
+        )
+
+        if len(creatives) != 2:
+            raise RuntimeError(
+                "This experiment requires exactly "
+                "2 synced playlist creatives."
+            )
+
+        campaign_plan = MetaCampaignPlan(
+            release_id=None,
+            playlist_id=playlist.id,
+            meta_audience_id=audience.id,
+            objective="OUTCOME_TRAFFIC",
+            optimization_goal="LINK_CLICKS",
+            conversion_event="LINK_CLICKS",
+            meta_pixel_id=None,
+            destination_url=playlist.spotify_url,
+            call_to_action="LISTEN_NOW",
+            total_budget=35.00,
+            status="draft",
+            age_min=18,
+            age_max=64,
+            campaign_type="interest",
+        )
+
+        db.add(campaign_plan)
+        db.flush()
+
+        variant = MetaCampaignVariant(
+            meta_campaign_plan_id=
+                campaign_plan.id,
+            name=audience.name,
+            campaign_type="interest",
+            role="control",
+            status="draft",
+            enabled=True,
+        )
+
+        db.add(variant)
+
+        for creative in creatives:
+            db.add(
+                MetaCampaignPlanAsset(
+                    meta_campaign_plan_id=
+                        campaign_plan.id,
+                    asset_id=creative.id,
+                )
+            )
+
+        db.flush()
+
+        sync_campaign_cells(
+            db,
+            campaign_plan,
+        )
+
+        cell_count = (
+            db.query(MetaCampaignCell)
+            .filter(
+                MetaCampaignCell.meta_campaign_plan_id
+                == campaign_plan.id
+            )
+            .count()
+        )
+
+        if cell_count != 2:
+            raise RuntimeError(
+                "Expected exactly 2 campaign cells; "
+                f"found {cell_count}."
+            )
+
+        db.commit()
+
+        params = urlencode(
+            {
+                "experiment_status": "success",
+                "experiment_message": (
+                    "Draft experiment created: "
+                    "1 audience × 2 creatives "
+                    "= 2 campaign cells."
+                ),
+            }
+        )
+
+        return RedirectResponse(
+            url=(
+                f"/workspace/playlists/"
+                f"{playlist_id}/promotion?"
+                f"{params}"
+            ),
+            status_code=303,
+        )
+
+    except Exception as exc:
+        db.rollback()
+
+        params = urlencode(
+            {
+                "experiment_status": "error",
+                "experiment_message": str(exc),
+            }
+        )
+
+        return RedirectResponse(
+            url=(
+                f"/workspace/playlists/"
+                f"{playlist_id}/promotion?"
+                f"{params}"
+            ),
+            status_code=303,
+        )
+
+    finally:
+        db.close()
 
 
 @router.post(

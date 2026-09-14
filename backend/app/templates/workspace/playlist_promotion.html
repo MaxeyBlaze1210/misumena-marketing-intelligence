@@ -64,6 +64,17 @@
         </span>
     </nav>
 
+    {% if experiment_message %}
+        <section class="workspace-card">
+            <strong>
+                {{ experiment_status | upper }}
+            </strong>
+            <div>
+                {{ experiment_message }}
+            </div>
+        </section>
+    {% endif %}
+
     {% if promo_asset_message %}
         <section class="workspace-card">
             <strong>
@@ -216,19 +227,130 @@
         </div>
 
         <h2>
-            Campaign build
+            Campaign experiment
         </h2>
 
-        <p>
-            Meta launch is intentionally not enabled yet.
-        </p>
+        {% if campaign_plan %}
+            <p>
+                Draft campaign plan
+                #{{ campaign_plan.id }}
+            </p>
 
-        <p class="muted">
-            The current MMI ad-set launcher optimizes for
-            Pixel Content View. This experiment links directly
-            to Spotify, so a direct-link traffic mode needs to
-            be added before campaign creation is enabled.
-        </p>
+            <div class="release-grid">
+                <article class="release-card">
+                    <div class="eyebrow">
+                        Objective
+                    </div>
+                    <strong>
+                        {{ campaign_plan.objective }}
+                    </strong>
+                </article>
+
+                <article class="release-card">
+                    <div class="eyebrow">
+                        Optimization
+                    </div>
+                    <strong>
+                        {{ campaign_plan.optimization_goal }}
+                    </strong>
+                </article>
+
+                <article class="release-card">
+                    <div class="eyebrow">
+                        Budget
+                    </div>
+                    <strong>
+                        €{{ campaign_plan.total_budget }}
+                    </strong>
+                </article>
+
+                <article class="release-card">
+                    <div class="eyebrow">
+                        Planned cells
+                    </div>
+                    <strong>
+                        {{ campaign_cells | length }}
+                    </strong>
+                </article>
+            </div>
+
+            {% if campaign_variants %}
+                <p>
+                    Audience context:
+                    <strong>
+                        {{ campaign_variants[0].name }}
+                    </strong>
+                </p>
+            {% endif %}
+
+            <p class="muted">
+                Direct Spotify destination.
+                No Meta pixel.
+            </p>
+
+            <p class="muted">
+                Actual Meta targeting interests still need
+                to be configured before launch is enabled.
+            </p>
+
+            <p class="muted">
+                No Meta campaign, ad set, or ad has been
+                created by this draft.
+            </p>
+
+        {% else %}
+            <p>
+                Create the local draft for the
+                one-audience × two-creative experiment.
+            </p>
+
+            {% if creatives | length == 2
+                  and meta_audiences %}
+
+                <form
+                    method="post"
+                    action="/workspace/playlists/{{ playlist.id }}/promotion/experiment"
+                >
+                    <label>
+                        Audience family
+                    </label>
+
+                    <select
+                        name="meta_audience_id"
+                        required
+                    >
+                        {% for audience in meta_audiences %}
+                            <option value="{{ audience.id }}">
+                                {{ audience.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    <div style="margin-top: 12px;">
+                        <button type="submit">
+                            Create draft experiment
+                        </button>
+                    </div>
+                </form>
+
+                <p class="muted">
+                    This creates only local MMI planning
+                    records. It does not call Meta.
+                </p>
+
+            {% elif creatives | length != 2 %}
+                <p>
+                    Exactly two synced creatives are required.
+                    Currently found:
+                    {{ creatives | length }}.
+                </p>
+
+            {% else %}
+                <p>
+                    No Meta audience families are available.
+                </p>
+            {% endif %}
+        {% endif %}
     </section>
 
 </div>
