@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <title>{{ playlist.name }} · Analytics</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/workspace.css?v=playlist-analytics1"
+    >
+</head>
+
+<body>
+<div class="workspace-shell">
+
+    <a
+        class="back-link"
+        href="/workspace/playlists"
+    >
+        ← All playlists
+    </a>
+
+    <header class="workspace-header">
+        <div>
+            <div class="eyebrow">
+                Playlist workspace
+            </div>
+
+            <h1>
+                {{ playlist.name }}
+            </h1>
+
+            <div class="muted">
+                {{ playlist.platform }}
+            </div>
+        </div>
+    </header>
+
+    <nav class="workspace-tabs">
+        <a
+            href="/workspace/playlists/{{ playlist.id }}"
+        >
+            Overview
+        </a>
+
+        <span>·</span>
+
+        <a
+            href="/workspace/playlists/{{ playlist.id }}/promotion"
+        >
+            Promotion
+        </a>
+
+        <span>·</span>
+
+        <a
+            class="active"
+            href="/workspace/playlists/{{ playlist.id }}/analytics"
+        >
+            Analytics
+        </a>
+    </nav>
+
+
+    {% if analytics_message %}
+        <section class="workspace-card">
+            <strong>
+                {{ analytics_status | upper }}
+            </strong>
+
+            <div>
+                {{ analytics_message }}
+            </div>
+        </section>
+    {% endif %}
+
+
+    <section class="workspace-card">
+        <div class="eyebrow">
+            Meta
+        </div>
+
+        <h2>
+            Paid acquisition
+        </h2>
+
+        <form
+            method="post"
+            action="/workspace/playlists/{{ playlist.id }}/analytics/refresh"
+        >
+            <button type="submit">
+                Refresh Meta analytics
+            </button>
+        </form>
+
+        <div
+            class="release-grid"
+            style="margin-top:20px;"
+        >
+            <article class="release-card">
+                <div class="eyebrow">
+                    Spend
+                </div>
+                <h3>
+                    €{{ "%.2f"|format(meta_summary.spend) }}
+                </h3>
+            </article>
+
+            <article class="release-card">
+                <div class="eyebrow">
+                    Impressions
+                </div>
+                <h3>
+                    {{ meta_summary.impressions }}
+                </h3>
+            </article>
+
+            <article class="release-card">
+                <div class="eyebrow">
+                    Clicks
+                </div>
+                <h3>
+                    {{ meta_summary.clicks }}
+                </h3>
+            </article>
+
+            <article class="release-card">
+                <div class="eyebrow">
+                    CTR
+                </div>
+                <h3>
+                    {% if meta_summary.ctr is not none %}
+                        {{ "%.2f"|format(meta_summary.ctr) }}%
+                    {% else %}
+                        —
+                    {% endif %}
+                </h3>
+            </article>
+
+            <article class="release-card">
+                <div class="eyebrow">
+                    CPC
+                </div>
+                <h3>
+                    {% if meta_summary.cpc is not none %}
+                        €{{ "%.3f"|format(meta_summary.cpc) }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </h3>
+            </article>
+        </div>
+    </section>
+
+
+    <section class="workspace-card">
+        <div class="eyebrow">
+            Creative intelligence
+        </div>
+
+        <h2>
+            C1 vs C2
+        </h2>
+
+        <p class="muted">
+            Paid Meta delivery and the latest organic
+            Instagram snapshot are shown side by side.
+        </p>
+
+        <div style="overflow-x:auto;">
+            <table
+                style="
+                    width:100%;
+                    border-collapse:collapse;
+                    min-width:900px;
+                "
+            >
+                <thead>
+                    <tr>
+                        <th
+                            style="
+                                text-align:left;
+                                padding:10px;
+                                border-bottom:1px solid #ddd;
+                            "
+                        >
+                            Creative
+                        </th>
+
+                        <th
+                            style="
+                                text-align:left;
+                                padding:10px;
+                                border-bottom:1px solid #ddd;
+                            "
+                        >
+                            Meta
+                        </th>
+
+                        <th
+                            style="
+                                text-align:left;
+                                padding:10px;
+                                border-bottom:1px solid #ddd;
+                            "
+                        >
+                            Instagram organic
+                        </th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                {% for row in analytics_rows %}
+                    <tr>
+                        <td
+                            style="
+                                padding:12px 10px;
+                                vertical-align:top;
+                                border-bottom:1px solid #eee;
+                            "
+                        >
+                            <strong>
+                                C{{ row.creative_number }}
+                            </strong>
+                            <br>
+                            {{ row.asset.file_name or row.asset.name }}
+                        </td>
+
+                        <td
+                            style="
+                                padding:12px 10px;
+                                vertical-align:top;
+                                border-bottom:1px solid #eee;
+                                line-height:1.6;
+                            "
+                        >
+                            €{{ "%.2f"|format(row.paid.spend) }}
+                            spend
+                            <br>
+
+                            {{ row.paid.impressions }}
+                            impressions
+                            <br>
+
+                            <strong>
+                                {{ row.paid.clicks }} clicks
+                            </strong>
+                            <br>
+
+                            {% if row.paid.ctr is not none %}
+                                {{ "%.2f"|format(row.paid.ctr) }}%
+                                CTR
+                            {% else %}
+                                — CTR
+                            {% endif %}
+                            <br>
+
+                            {% if row.paid.cpc is not none %}
+                                €{{ "%.3f"|format(row.paid.cpc) }}
+                                CPC
+                            {% else %}
+                                — CPC
+                            {% endif %}
+
+                            <br><br>
+
+                            {{ row.paid.post_likes }}
+                            paid likes
+                            <br>
+
+                            {{ row.paid.post_saves }}
+                            paid saves
+                            <br>
+
+                            {{ row.paid.video_views }}
+                            video views
+                        </td>
+
+                        <td
+                            style="
+                                padding:12px 10px;
+                                vertical-align:top;
+                                border-bottom:1px solid #eee;
+                                line-height:1.6;
+                            "
+                        >
+                            {% if row.organic %}
+
+                                {% if row.organic.post_url %}
+                                    <a
+                                        href="{{ row.organic.post_url }}"
+                                        target="_blank"
+                                        rel="noopener"
+                                    >
+                                        Open Instagram post
+                                    </a>
+                                    <br>
+                                {% endif %}
+
+                                <strong>
+                                    {{ row.organic.views }}
+                                    views
+                                </strong>
+                                <br>
+
+                                {{ row.organic.likes or 0 }}
+                                likes
+                                <br>
+
+                                {% if row.organic_like_rate is not none %}
+                                    <strong>
+                                        {{ "%.2f"|format(
+                                            row.organic_like_rate
+                                        ) }}%
+                                        like rate
+                                    </strong>
+                                    <br>
+                                {% endif %}
+
+                                {% if row.organic.comments is not none %}
+                                    {{ row.organic.comments }}
+                                    comments
+                                    <br>
+                                {% endif %}
+
+                                {% if row.organic.saves is not none %}
+                                    {{ row.organic.saves }}
+                                    saves
+                                    <br>
+                                {% endif %}
+
+                                {% if row.organic.shares is not none %}
+                                    {{ row.organic.shares }}
+                                    shares
+                                    <br>
+                                {% endif %}
+
+                                <span class="muted">
+                                    {{ row.snapshot_count }}
+                                    snapshot{% if row.snapshot_count != 1 %}s{% endif %}
+                                </span>
+
+                            {% else %}
+                                <span class="muted">
+                                    No Instagram snapshot yet.
+                                </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+
+    <section class="workspace-card">
+        <div class="eyebrow">
+            Organic signal
+        </div>
+
+        <h2>
+            Add Instagram snapshot
+        </h2>
+
+        <p class="muted">
+            Each save creates a new timestamped observation.
+            Existing observations are preserved.
+        </p>
+
+        <div class="release-grid">
+        {% for row in analytics_rows %}
+
+            <article class="release-card">
+                <div class="eyebrow">
+                    Creative {{ row.creative_number }}
+                </div>
+
+                <h3>
+                    {{ row.asset.file_name or row.asset.name }}
+                </h3>
+
+                <form
+                    method="post"
+                    action="/workspace/playlists/{{ playlist.id }}/analytics/organic/{{ row.asset.id }}"
+                >
+                    <label>
+                        Instagram post URL
+                    </label>
+
+                    <input
+                        type="url"
+                        name="post_url"
+                        value="{% if row.organic and row.organic.post_url %}{{ row.organic.post_url }}{% endif %}"
+                        style="width:100%;"
+                    >
+
+                    <label style="display:block; margin-top:10px;">
+                        Views
+                    </label>
+
+                    <input
+                        type="number"
+                        name="views"
+                        min="0"
+                        required
+                    >
+
+                    <label style="display:block; margin-top:10px;">
+                        Likes
+                    </label>
+
+                    <input
+                        type="number"
+                        name="likes"
+                        min="0"
+                    >
+
+                    <label style="display:block; margin-top:10px;">
+                        Comments
+                    </label>
+
+                    <input
+                        type="number"
+                        name="comments"
+                        min="0"
+                    >
+
+                    <label style="display:block; margin-top:10px;">
+                        Saves
+                    </label>
+
+                    <input
+                        type="number"
+                        name="saves"
+                        min="0"
+                    >
+
+                    <label style="display:block; margin-top:10px;">
+                        Shares
+                    </label>
+
+                    <input
+                        type="number"
+                        name="shares"
+                        min="0"
+                    >
+
+                    <div style="margin-top:14px;">
+                        <button type="submit">
+                            Save snapshot
+                        </button>
+                    </div>
+                </form>
+            </article>
+
+        {% endfor %}
+        </div>
+    </section>
+
+</div>
+</body>
+</html>

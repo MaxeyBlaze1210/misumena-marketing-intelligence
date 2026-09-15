@@ -3075,6 +3075,515 @@ def playlist_workspace(
 
 
 
+
+@router.post(
+    "/playlists/{playlist_id}/analytics/refresh"
+)
+def refresh_playlist_analytics(
+    playlist_id: int,
+):
+    from app.models.playlist import Playlist
+    from app.importers.meta_importer import (
+        import_meta_campaign,
+    )
+
+    db = SessionLocal()
+
+    try:
+        playlist = db.get(
+            Playlist,
+            playlist_id,
+        )
+
+        if playlist is None:
+            raise RuntimeError(
+                "Playlist not found."
+            )
+
+        campaign_ids = [
+            campaign.meta_campaign_id
+            for campaign in (
+                db.query(MetaCampaign)
+                .filter(
+                    MetaCampaign.playlist_id
+                    == playlist_id
+                )
+                .all()
+            )
+            if campaign.meta_campaign_id
+        ]
+
+    finally:
+        db.close()
+
+    try:
+        refreshed = 0
+
+        for campaign_id in campaign_ids:
+            import_meta_campaign(
+                campaign_id=campaign_id,
+                release_id=None,
+            )
+
+            # The existing importer predates playlist-owned
+            # campaigns. Re-assert playlist ownership after
+            # refreshing the shared Meta campaign row.
+            db = SessionLocal()
+
+            try:
+                campaign = (
+                    db.query(MetaCampaign)
+                    .filter(
+                        MetaCampaign.meta_campaign_id
+                        == campaign_id
+                    )
+                    .one_or_none()
+                )
+
+                if campaign is not None:
+                    campaign.release_id = None
+                    campaign.playlist_id = playlist_id
+                    db.commit()
+
+            except Exception:
+                db.rollback()
+                raise
+
+            finally:
+                db.close()
+
+            refreshed += 1
+
+        params = urlencode(
+            {
+                "analytics_status": "success",
+                "analytics_message": (
+                    f"Refreshed {refreshed} Meta "
+                    f"campaign(s)."
+                ),
+            }
+        )
+
+    except Exception as exc:
+        params = urlencode(
+            {
+                "analytics_status": "error",
+                "analytics_message": str(exc),
+            }
+        )
+
+    return RedirectResponse(
+        url=(
+            f"/workspace/playlists/"
+            f"{playlist_id}/analytics?"
+            f"{params}"
+        ),
+        status_code=303,
+    )
+
+
+@router.post(
+    "/playlists/{playlist_id}/analytics/"
+    "organic/{asset_id}"
+)
+def add_playlist_organic_snapshot(
+    playlist_id: int,
+    asset_id: int,
+    post_url: str = Form(""),
+    views: int = Form(...),
+    likes: int | None = Form(None),
+    comments: int | None = Form(None),
+    saves: int | None = Form(None),
+    shares: int | None = Form(None),
+):
+    import re
+
+    from app.models.playlist import Playlist
+    from app.models.organic_asset_metric import (
+        OrganicAssetMetric,
+    )
+
+    db = SessionLocal()
+
+    try:
+        playlist = db.get(
+            Playlist,
+            playlist_id,
+        )
+
+        if playlist is None:
+            raise RuntimeError(
+                "Playlist not found."
+            )
+
+        asset = (
+            db.query(Asset)
+            .filter(
+                Asset.id == asset_id,
+                Asset.playlist_id == playlist_id,
+                Asset.asset_type
+                == "short_form_video",
+            )
+            .one_or_none()
+        )
+
+        if asset is None:
+            raise RuntimeError(
+                "Playlist creative not found."
+            )
+
+        values = {
+            "views": views,
+            "likes": likes,
+            "comments": comments,
+            "saves": saves,
+            "shares": shares,
+        }
+
+        for name, value in values.items():
+            if (
+                value is not None
+                and value < 0
+            ):
+                raise RuntimeError(
+                    f"{name} cannot be negative."
+                )
+
+        post_url = post_url.strip() or None
+        platform_post_id = None
+
+        if post_url:
+            match = re.search(
+                r"instagram\.com/"
+                r"(?:p|reel|reels)/"
+                r"([^/?#]+)",
+                post_url,
+                flags=re.IGNORECASE,
+            )
+
+            if match:
+                platform_post_id = (
+                    match.group(1)
+                )
+
+        db.add(
+            OrganicAssetMetric(
+                asset_id=asset.id,
+                platform="instagram",
+                platform_post_id=
+                    platform_post_id,
+                post_url=post_url,
+                views=views,
+                likes=likes,
+                comments=comments,
+                saves=saves,
+                shares=shares,
+            )
+        )
+
+        db.commit()
+
+        params = urlencode(
+            {
+                "analytics_status": "success",
+                "analytics_message": (
+                    "Instagram snapshot saved."
+                ),
+            }
+        )
+
+    except Exception as exc:
+        db.rollback()
+
+        params = urlencode(
+            {
+                "analytics_status": "error",
+                "analytics_message": str(exc),
+            }
+        )
+
+    finally:
+        db.close()
+
+    return RedirectResponse(
+        url=(
+            f"/workspace/playlists/"
+            f"{playlist_id}/analytics?"
+            f"{params}"
+        ),
+        status_code=303,
+    )
+
+
+@router.get("/playlists/{playlist_id}/analytics")
+def playlist_analytics(
+    playlist_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    from app.models.playlist import Playlist
+    from app.models.meta_ad_metric import (
+        MetaAdMetric,
+    )
+    from app.models.organic_asset_metric import (
+        OrganicAssetMetric,
+    )
+
+    playlist = db.get(
+        Playlist,
+        playlist_id,
+    )
+
+    if playlist is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Playlist not found.",
+        )
+
+    campaign_plan = (
+        db.query(MetaCampaignPlan)
+        .filter(
+            MetaCampaignPlan.playlist_id
+            == playlist.id
+        )
+        .one_or_none()
+    )
+
+    campaign_cells = (
+        db.query(MetaCampaignCell)
+        .filter(
+            MetaCampaignCell.meta_campaign_plan_id
+            == campaign_plan.id
+        )
+        .all()
+        if campaign_plan is not None
+        else []
+    )
+
+    creatives = (
+        db.query(Asset)
+        .filter(
+            Asset.playlist_id == playlist.id,
+            Asset.asset_type
+            == "short_form_video",
+        )
+        .order_by(
+            Asset.id.asc()
+        )
+        .all()
+    )
+
+    cells_by_adset = {
+        str(cell.meta_adset_id): cell
+        for cell in campaign_cells
+        if cell.meta_adset_id
+    }
+
+    metric_rows = (
+        db.query(
+            MetaCampaign,
+            MetaAd,
+            MetaAdMetric,
+        )
+        .join(
+            MetaAd,
+            MetaAd.campaign_id
+            == MetaCampaign.id,
+        )
+        .join(
+            MetaAdMetric,
+            MetaAdMetric.ad_id
+            == MetaAd.id,
+        )
+        .filter(
+            MetaCampaign.playlist_id
+            == playlist.id
+        )
+        .order_by(
+            MetaAdMetric.date_start.asc()
+        )
+        .all()
+    )
+
+    paid_by_asset = {
+        asset.id: {
+            "spend": 0.0,
+            "impressions": 0,
+            "clicks": 0,
+            "post_likes": 0,
+            "post_saves": 0,
+            "post_reactions": 0,
+            "video_views": 0,
+        }
+        for asset in creatives
+    }
+
+    for _, ad, metric in metric_rows:
+        if not ad.meta_adset_id:
+            continue
+
+        cell = cells_by_adset.get(
+            str(ad.meta_adset_id)
+        )
+
+        if cell is None:
+            continue
+
+        paid = paid_by_asset.get(
+            cell.asset_id
+        )
+
+        if paid is None:
+            continue
+
+        paid["spend"] += float(
+            metric.spend or 0
+        )
+        paid["impressions"] += int(
+            metric.impressions or 0
+        )
+        paid["clicks"] += int(
+            metric.clicks or 0
+        )
+        paid["post_likes"] += int(
+            metric.post_likes or 0
+        )
+        paid["post_saves"] += int(
+            metric.post_saves or 0
+        )
+        paid["post_reactions"] += int(
+            metric.post_reactions or 0
+        )
+        paid["video_views"] += int(
+            metric.video_views or 0
+        )
+
+    analytics_rows = []
+
+    for index, asset in enumerate(
+        creatives,
+        start=1,
+    ):
+        paid = paid_by_asset[
+            asset.id
+        ]
+
+        paid["ctr"] = (
+            paid["clicks"]
+            / paid["impressions"]
+            * 100
+            if paid["impressions"]
+            else None
+        )
+
+        paid["cpc"] = (
+            paid["spend"]
+            / paid["clicks"]
+            if paid["clicks"]
+            else None
+        )
+
+        organic = (
+            db.query(OrganicAssetMetric)
+            .filter(
+                OrganicAssetMetric.asset_id
+                == asset.id,
+                OrganicAssetMetric.platform
+                == "instagram",
+            )
+            .order_by(
+                OrganicAssetMetric
+                .observed_at.desc()
+            )
+            .first()
+        )
+
+        snapshot_count = (
+            db.query(OrganicAssetMetric)
+            .filter(
+                OrganicAssetMetric.asset_id
+                == asset.id,
+                OrganicAssetMetric.platform
+                == "instagram",
+            )
+            .count()
+        )
+
+        organic_like_rate = None
+
+        if (
+            organic is not None
+            and organic.views
+        ):
+            organic_like_rate = (
+                (organic.likes or 0)
+                / organic.views
+                * 100
+            )
+
+        analytics_rows.append(
+            {
+                "creative_number": index,
+                "asset": asset,
+                "paid": paid,
+                "organic": organic,
+                "organic_like_rate":
+                    organic_like_rate,
+                "snapshot_count":
+                    snapshot_count,
+            }
+        )
+
+    meta_summary = {
+        "spend": sum(
+            row["paid"]["spend"]
+            for row in analytics_rows
+        ),
+        "impressions": sum(
+            row["paid"]["impressions"]
+            for row in analytics_rows
+        ),
+        "clicks": sum(
+            row["paid"]["clicks"]
+            for row in analytics_rows
+        ),
+    }
+
+    meta_summary["ctr"] = (
+        meta_summary["clicks"]
+        / meta_summary["impressions"]
+        * 100
+        if meta_summary["impressions"]
+        else None
+    )
+
+    meta_summary["cpc"] = (
+        meta_summary["spend"]
+        / meta_summary["clicks"]
+        if meta_summary["clicks"]
+        else None
+    )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="workspace/playlist_analytics.html",
+        context={
+            "playlist": playlist,
+            "campaign_plan": campaign_plan,
+            "analytics_rows": analytics_rows,
+            "meta_summary": meta_summary,
+            "analytics_status":
+                request.query_params.get(
+                    "analytics_status"
+                ),
+            "analytics_message":
+                request.query_params.get(
+                    "analytics_message"
+                ),
+        },
+    )
+
+
 @router.get("/playlists/{playlist_id}/promotion")
 def playlist_promotion(
     playlist_id: int,
