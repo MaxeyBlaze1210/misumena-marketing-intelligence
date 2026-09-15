@@ -3483,6 +3483,14 @@ def playlist_analytics(
             else None
         )
 
+        paid["like_rate"] = (
+            paid["post_likes"]
+            / paid["impressions"]
+            * 100
+            if paid["impressions"]
+            else None
+        )
+
         organic = (
             db.query(OrganicAssetMetric)
             .filter(
