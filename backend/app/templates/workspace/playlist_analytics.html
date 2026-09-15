@@ -14,7 +14,7 @@
 
     <link
         rel="stylesheet"
-        href="/static/workspace.css?v=playlist-analytics1"
+        href="/static/css/workspace.css?v=playlist-analytics2"
     >
 </head>
 
@@ -257,24 +257,24 @@
 
                             <td style="padding:10px;">
                                 <strong>
-                                    Creative {{ row.number }}
+                                    Creative {{ row.creative_number }}
                                 </strong>
                             </td>
 
                             <td style="padding:10px;">
                                 €{{ "%.2f"|format(
-                                    row.metrics.spend
+                                    row.paid.spend
                                 ) }}
                             </td>
 
                             <td style="padding:10px;">
-                                {{ row.metrics.clicks }}
+                                {{ row.paid.clicks }}
                             </td>
 
                             <td style="padding:10px;">
-                                {% if row.metrics.cpc is not none %}
+                                {% if row.paid.cpc is not none %}
                                     €{{ "%.3f"|format(
-                                        row.metrics.cpc
+                                        row.paid.cpc
                                     ) }}
                                 {% else %}
                                     —
@@ -282,13 +282,13 @@
                             </td>
 
                             <td style="padding:10px;">
-                                {{ row.metrics.impressions }}
+                                {{ row.paid.impressions }}
                             </td>
 
                             <td style="padding:10px;">
-                                {% if row.metrics.ctr is not none %}
+                                {% if row.paid.ctr is not none %}
                                     {{ "%.2f"|format(
-                                        row.metrics.ctr
+                                        row.paid.ctr
                                     ) }}%
                                 {% else %}
                                     —
@@ -361,18 +361,18 @@
 
                             <td style="padding:10px;">
                                 <strong>
-                                    Creative {{ row.number }}
+                                    Creative {{ row.creative_number }}
                                 </strong>
                             </td>
 
                             <td style="padding:10px;">
-                                {{ row.metrics.post_likes }}
+                                {{ row.paid.post_likes }}
                             </td>
 
                             <td style="padding:10px;">
-                                {% if row.metrics.like_rate is not none %}
+                                {% if row.paid.like_rate is not none %}
                                     {{ "%.2f"|format(
-                                        row.metrics.like_rate
+                                        row.paid.like_rate
                                     ) }}%
                                 {% else %}
                                     —
@@ -380,15 +380,15 @@
                             </td>
 
                             <td style="padding:10px;">
-                                {{ row.metrics.post_saves }}
+                                {{ row.paid.post_saves }}
                             </td>
 
                             <td style="padding:10px;">
-                                {{ row.metrics.post_reactions }}
+                                {{ row.paid.post_reactions }}
                             </td>
 
                             <td style="padding:10px;">
-                                {{ row.metrics.video_views }}
+                                {{ row.paid.video_views }}
                             </td>
 
                         </tr>
