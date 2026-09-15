@@ -30,6 +30,7 @@ def find_action_value(items: list[dict], action_type: str) -> float | None:
 def import_meta_campaign(
     campaign_id: str,
     release_id: int | None = None,
+    playlist_id: int | None = None,
 ) -> None:
     init_db()
 
@@ -70,6 +71,7 @@ def import_meta_campaign(
             db.add(campaign)
 
         campaign.release_id = release_id
+        campaign.playlist_id = playlist_id
         campaign.name = campaign_data["name"]
         campaign.status = campaign_data.get("status")
         campaign.objective = campaign_data.get("objective")

@@ -2,19 +2,24 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0"
     >
-    <title>{{ playlist.name }} · Analytics</title>
+
+    <title>
+        {{ playlist.name }} · Analytics
+    </title>
 
     <link
         rel="stylesheet"
-        href="/static/css/workspace.css?v=playlist-analytics1"
+        href="/static/workspace.css?v=playlist-analytics1"
     >
 </head>
 
 <body>
+
 <div class="workspace-shell">
 
     <a
@@ -41,6 +46,7 @@
     </header>
 
     <nav class="workspace-tabs">
+
         <a
             href="/workspace/playlists/{{ playlist.id }}"
         >
@@ -63,10 +69,12 @@
         >
             Analytics
         </a>
+
     </nav>
 
 
     {% if analytics_message %}
+
         <section class="workspace-card">
             <strong>
                 {{ analytics_status | upper }}
@@ -76,16 +84,14 @@
                 {{ analytics_message }}
             </div>
         </section>
+
     {% endif %}
 
 
     <section class="workspace-card">
-        <div class="eyebrow">
-            Meta
-        </div>
 
         <h2>
-            Paid acquisition
+            Analytics
         </h2>
 
         <form
@@ -93,375 +99,342 @@
             action="/workspace/playlists/{{ playlist.id }}/analytics/refresh"
         >
             <button type="submit">
-                Refresh Meta analytics
+                Refresh analytics
             </button>
         </form>
 
-        <div
-            class="release-grid"
-            style="margin-top:20px;"
-        >
+        <p class="muted">
+            Fetch fresh Meta campaign data.
+        </p>
+
+    </section>
+
+
+    <section class="workspace-card">
+
+        <h3>
+            Meta
+        </h3>
+
+
+        {% if checkpoint_options %}
+
+            <div style="
+                display:flex;
+                gap:10px;
+                flex-wrap:wrap;
+                margin-bottom:14px;
+            ">
+
+                {% for option in checkpoint_options %}
+
+                    <a
+                        href="/workspace/playlists/{{ playlist.id }}/analytics?checkpoint={{ option.value }}"
+                    >
+                        {% if meta_checkpoint == option.value %}
+                            <strong>
+                                {{ option.label }}
+                            </strong>
+                        {% else %}
+                            {{ option.label }}
+                        {% endif %}
+                    </a>
+
+                {% endfor %}
+
+            </div>
+
+            <p class="muted">
+                Cumulative evidence through
+                {{ meta_checkpoint_date }}.
+            </p>
+
+        {% endif %}
+
+
+        <h4>
+            Campaign performance
+        </h4>
+
+        <div class="release-grid">
+
             <article class="release-card">
-                <div class="eyebrow">
-                    Spend
-                </div>
-                <h3>
+                <strong>
                     €{{ "%.2f"|format(meta_summary.spend) }}
-                </h3>
+                </strong>
+                <br>
+                <small>Spend</small>
             </article>
 
             <article class="release-card">
-                <div class="eyebrow">
-                    Impressions
-                </div>
-                <h3>
-                    {{ meta_summary.impressions }}
-                </h3>
-            </article>
-
-            <article class="release-card">
-                <div class="eyebrow">
-                    Clicks
-                </div>
-                <h3>
+                <strong>
                     {{ meta_summary.clicks }}
-                </h3>
+                </strong>
+                <br>
+                <small>Link clicks</small>
             </article>
 
             <article class="release-card">
-                <div class="eyebrow">
-                    CTR
-                </div>
-                <h3>
-                    {% if meta_summary.ctr is not none %}
-                        {{ "%.2f"|format(meta_summary.ctr) }}%
-                    {% else %}
-                        —
-                    {% endif %}
-                </h3>
-            </article>
-
-            <article class="release-card">
-                <div class="eyebrow">
-                    CPC
-                </div>
-                <h3>
+                <strong>
                     {% if meta_summary.cpc is not none %}
                         €{{ "%.3f"|format(meta_summary.cpc) }}
                     {% else %}
                         —
                     {% endif %}
-                </h3>
+                </strong>
+                <br>
+                <small>CPC</small>
             </article>
+
+            <article class="release-card">
+                <strong>
+                    {{ meta_summary.impressions }}
+                </strong>
+                <br>
+                <small>Impressions</small>
+            </article>
+
+            <article class="release-card">
+                <strong>
+                    {% if meta_summary.ctr is not none %}
+                        {{ "%.2f"|format(meta_summary.ctr) }}%
+                    {% else %}
+                        —
+                    {% endif %}
+                </strong>
+                <br>
+                <small>CTR</small>
+            </article>
+
         </div>
-    </section>
 
 
-    <section class="workspace-card">
-        <div class="eyebrow">
-            Creative intelligence
-        </div>
-
-        <h2>
-            C1 vs C2
-        </h2>
-
-        <p class="muted">
-            Paid Meta delivery and the latest organic
-            Instagram snapshot are shown side by side.
-        </p>
+        <h4 style="margin-top:32px;">
+            Creative performance
+        </h4>
 
         <div style="overflow-x:auto;">
-            <table
-                style="
-                    width:100%;
-                    border-collapse:collapse;
-                    min-width:900px;
-                "
-            >
+
+            <table style="
+                width:100%;
+                border-collapse:collapse;
+                min-width:760px;
+            ">
+
                 <thead>
                     <tr>
-                        <th
-                            style="
-                                text-align:left;
-                                padding:10px;
-                                border-bottom:1px solid #ddd;
-                            "
-                        >
+                        <th style="text-align:left; padding:10px;">
                             Creative
                         </th>
 
-                        <th
-                            style="
-                                text-align:left;
-                                padding:10px;
-                                border-bottom:1px solid #ddd;
-                            "
-                        >
-                            Meta
+                        <th style="text-align:left; padding:10px;">
+                            Spend
                         </th>
 
-                        <th
-                            style="
-                                text-align:left;
-                                padding:10px;
-                                border-bottom:1px solid #ddd;
-                            "
-                        >
-                            Instagram organic
+                        <th style="text-align:left; padding:10px;">
+                            Clicks
+                        </th>
+
+                        <th style="text-align:left; padding:10px;">
+                            CPC
+                        </th>
+
+                        <th style="text-align:left; padding:10px;">
+                            Impressions
+                        </th>
+
+                        <th style="text-align:left; padding:10px;">
+                            CTR
                         </th>
                     </tr>
                 </thead>
 
                 <tbody>
-                {% for row in analytics_rows %}
-                    <tr>
-                        <td
-                            style="
-                                padding:12px 10px;
-                                vertical-align:top;
-                                border-bottom:1px solid #eee;
-                            "
-                        >
-                            <strong>
-                                C{{ row.creative_number }}
-                            </strong>
-                            <br>
-                            {{ row.asset.file_name or row.asset.name }}
-                        </td>
 
-                        <td
-                            style="
-                                padding:12px 10px;
-                                vertical-align:top;
-                                border-bottom:1px solid #eee;
-                                line-height:1.6;
-                            "
-                        >
-                            €{{ "%.2f"|format(row.paid.spend) }}
-                            spend
-                            <br>
+                    {% for row in analytics_rows %}
 
-                            {{ row.paid.impressions }}
-                            impressions
-                            <br>
+                        <tr>
 
-                            <strong>
-                                {{ row.paid.clicks }} clicks
-                            </strong>
-                            <br>
-
-                            {% if row.paid.ctr is not none %}
-                                {{ "%.2f"|format(row.paid.ctr) }}%
-                                CTR
-                            {% else %}
-                                — CTR
-                            {% endif %}
-                            <br>
-
-                            {% if row.paid.cpc is not none %}
-                                €{{ "%.3f"|format(row.paid.cpc) }}
-                                CPC
-                            {% else %}
-                                — CPC
-                            {% endif %}
-
-                            <br><br>
-
-                            {{ row.paid.post_likes }}
-                            paid likes
-                            <br>
-
-                            {{ row.paid.post_saves }}
-                            paid saves
-                            <br>
-
-                            {{ row.paid.video_views }}
-                            video views
-                        </td>
-
-                        <td
-                            style="
-                                padding:12px 10px;
-                                vertical-align:top;
-                                border-bottom:1px solid #eee;
-                                line-height:1.6;
-                            "
-                        >
-                            {% if row.organic %}
-
-                                {% if row.organic.post_url %}
-                                    <a
-                                        href="{{ row.organic.post_url }}"
-                                        target="_blank"
-                                        rel="noopener"
-                                    >
-                                        Open Instagram post
-                                    </a>
-                                    <br>
-                                {% endif %}
-
+                            <td style="padding:10px;">
                                 <strong>
-                                    {{ row.organic.views }}
-                                    views
+                                    Creative {{ row.number }}
                                 </strong>
-                                <br>
+                            </td>
 
-                                {{ row.organic.likes or 0 }}
-                                likes
-                                <br>
+                            <td style="padding:10px;">
+                                €{{ "%.2f"|format(
+                                    row.metrics.spend
+                                ) }}
+                            </td>
 
-                                {% if row.organic_like_rate is not none %}
-                                    <strong>
-                                        {{ "%.2f"|format(
-                                            row.organic_like_rate
-                                        ) }}%
-                                        like rate
-                                    </strong>
-                                    <br>
+                            <td style="padding:10px;">
+                                {{ row.metrics.clicks }}
+                            </td>
+
+                            <td style="padding:10px;">
+                                {% if row.metrics.cpc is not none %}
+                                    €{{ "%.3f"|format(
+                                        row.metrics.cpc
+                                    ) }}
+                                {% else %}
+                                    —
                                 {% endif %}
+                            </td>
 
-                                {% if row.organic.comments is not none %}
-                                    {{ row.organic.comments }}
-                                    comments
-                                    <br>
+                            <td style="padding:10px;">
+                                {{ row.metrics.impressions }}
+                            </td>
+
+                            <td style="padding:10px;">
+                                {% if row.metrics.ctr is not none %}
+                                    {{ "%.2f"|format(
+                                        row.metrics.ctr
+                                    ) }}%
+                                {% else %}
+                                    —
                                 {% endif %}
+                            </td>
 
-                                {% if row.organic.saves is not none %}
-                                    {{ row.organic.saves }}
-                                    saves
-                                    <br>
-                                {% endif %}
+                        </tr>
 
-                                {% if row.organic.shares is not none %}
-                                    {{ row.organic.shares }}
-                                    shares
-                                    <br>
-                                {% endif %}
+                    {% endfor %}
 
-                                <span class="muted">
-                                    {{ row.snapshot_count }}
-                                    snapshot{% if row.snapshot_count != 1 %}s{% endif %}
-                                </span>
-
-                            {% else %}
-                                <span class="muted">
-                                    No Instagram snapshot yet.
-                                </span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                {% endfor %}
                 </tbody>
+
             </table>
+
         </div>
+
+
+        <h4 style="margin-top:32px;">
+            Early engagement
+        </h4>
+
+        <p class="muted">
+            Paid-ad engagement imported automatically
+            from Meta.
+        </p>
+
+        <div style="overflow-x:auto;">
+
+            <table style="
+                width:100%;
+                border-collapse:collapse;
+                min-width:760px;
+            ">
+
+                <thead>
+                    <tr>
+
+                        <th style="text-align:left; padding:10px;">
+                            Creative
+                        </th>
+
+                        <th style="text-align:left; padding:10px;">
+                            Likes
+                        </th>
+
+                        <th style="text-align:left; padding:10px;">
+                            Like rate
+                        </th>
+
+                        <th style="text-align:left; padding:10px;">
+                            Saves
+                        </th>
+
+                        <th style="text-align:left; padding:10px;">
+                            Reactions
+                        </th>
+
+                        <th style="text-align:left; padding:10px;">
+                            Video views
+                        </th>
+
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for row in analytics_rows %}
+
+                        <tr>
+
+                            <td style="padding:10px;">
+                                <strong>
+                                    Creative {{ row.number }}
+                                </strong>
+                            </td>
+
+                            <td style="padding:10px;">
+                                {{ row.metrics.post_likes }}
+                            </td>
+
+                            <td style="padding:10px;">
+                                {% if row.metrics.like_rate is not none %}
+                                    {{ "%.2f"|format(
+                                        row.metrics.like_rate
+                                    ) }}%
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+
+                            <td style="padding:10px;">
+                                {{ row.metrics.post_saves }}
+                            </td>
+
+                            <td style="padding:10px;">
+                                {{ row.metrics.post_reactions }}
+                            </td>
+
+                            <td style="padding:10px;">
+                                {{ row.metrics.video_views }}
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
     </section>
 
 
     <section class="workspace-card">
-        <div class="eyebrow">
-            Organic signal
-        </div>
 
-        <h2>
-            Add Instagram snapshot
-        </h2>
+        <h3>
+            Instagram public engagement
+        </h3>
 
         <p class="muted">
-            Each save creates a new timestamped observation.
-            Existing observations are preserved.
+            Public Instagram post engagement is a
+            separate organic signal. We will keep the
+            22-hour C1/C2 snapshot separate from Meta
+            paid-ad engagement.
         </p>
 
-        <div class="release-grid">
-        {% for row in analytics_rows %}
+    </section>
 
-            <article class="release-card">
-                <div class="eyebrow">
-                    Creative {{ row.creative_number }}
-                </div>
 
-                <h3>
-                    {{ row.asset.file_name or row.asset.name }}
-                </h3>
+    <section class="workspace-card">
 
-                <form
-                    method="post"
-                    action="/workspace/playlists/{{ playlist.id }}/analytics/organic/{{ row.asset.id }}"
-                >
-                    <label>
-                        Instagram post URL
-                    </label>
+        <h3>
+            Spotify outcome
+        </h3>
 
-                    <input
-                        type="url"
-                        name="post_url"
-                        value="{% if row.organic and row.organic.post_url %}{{ row.organic.post_url }}{% endif %}"
-                        style="width:100%;"
-                    >
+        <p class="muted">
+            Playlist listeners, streams, streams per
+            listener and catalog depth belong here as
+            the downstream outcome of this experiment.
+        </p>
 
-                    <label style="display:block; margin-top:10px;">
-                        Views
-                    </label>
-
-                    <input
-                        type="number"
-                        name="views"
-                        min="0"
-                        required
-                    >
-
-                    <label style="display:block; margin-top:10px;">
-                        Likes
-                    </label>
-
-                    <input
-                        type="number"
-                        name="likes"
-                        min="0"
-                    >
-
-                    <label style="display:block; margin-top:10px;">
-                        Comments
-                    </label>
-
-                    <input
-                        type="number"
-                        name="comments"
-                        min="0"
-                    >
-
-                    <label style="display:block; margin-top:10px;">
-                        Saves
-                    </label>
-
-                    <input
-                        type="number"
-                        name="saves"
-                        min="0"
-                    >
-
-                    <label style="display:block; margin-top:10px;">
-                        Shares
-                    </label>
-
-                    <input
-                        type="number"
-                        name="shares"
-                        min="0"
-                    >
-
-                    <div style="margin-top:14px;">
-                        <button type="submit">
-                            Save snapshot
-                        </button>
-                    </div>
-                </form>
-            </article>
-
-        {% endfor %}
-        </div>
     </section>
 
 </div>
+
 </body>
 </html>

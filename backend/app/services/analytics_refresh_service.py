@@ -14,6 +14,7 @@ from app.importers.youtube_history_import import (
 )
 from app.models.meta_campaign import MetaCampaign
 from app.models.release import Release
+from app.models.playlist import Playlist
 from app.models.youtube_video import YouTubeVideo
 
 
@@ -119,4 +120,53 @@ def refresh_release_analytics(
             youtube_result,
         "youtube_discovery":
             youtube_discovery,
+    }
+
+
+
+def refresh_playlist_analytics(
+    playlist_id: int,
+) -> dict:
+    db = SessionLocal()
+
+    try:
+        playlist = db.get(
+            Playlist,
+            playlist_id,
+        )
+
+        if playlist is None:
+            raise RuntimeError(
+                f"Playlist {playlist_id} not found."
+            )
+
+        meta_campaign_ids = [
+            row.meta_campaign_id
+            for row in (
+                db.query(MetaCampaign)
+                .filter(
+                    MetaCampaign.playlist_id
+                    == playlist_id
+                )
+                .all()
+            )
+            if row.meta_campaign_id
+        ]
+
+    finally:
+        db.close()
+
+    meta_refreshed = 0
+
+    for campaign_id in meta_campaign_ids:
+        import_meta_campaign(
+            campaign_id=campaign_id,
+            playlist_id=playlist_id,
+        )
+
+        meta_refreshed += 1
+
+    return {
+        "playlist_id": playlist_id,
+        "meta_campaigns": meta_refreshed,
     }
