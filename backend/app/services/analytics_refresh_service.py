@@ -158,6 +158,7 @@ def refresh_playlist_analytics(
         db.close()
 
     meta_refreshed = 0
+    country_rows_imported = 0
 
     for campaign_id in meta_campaign_ids:
         import_meta_campaign(
@@ -165,8 +166,10 @@ def refresh_playlist_analytics(
             playlist_id=playlist_id,
         )
 
-        import_meta_campaign_country_metrics(
-            campaign_id=campaign_id,
+        country_rows_imported += (
+            import_meta_campaign_country_metrics(
+                campaign_id=campaign_id,
+            )
         )
 
         meta_refreshed += 1
@@ -174,4 +177,5 @@ def refresh_playlist_analytics(
     return {
         "playlist_id": playlist_id,
         "meta_campaigns": meta_refreshed,
+        "country_rows": country_rows_imported,
     }
