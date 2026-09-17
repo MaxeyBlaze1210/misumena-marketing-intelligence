@@ -3083,84 +3083,28 @@ def playlist_workspace(
 def refresh_playlist_analytics(
     playlist_id: int,
 ):
-    from app.models.playlist import Playlist
-    from app.importers.meta_importer import (
-        import_meta_campaign,
+    from app.services.analytics_refresh_service import (
+        refresh_playlist_analytics
+        as refresh_playlist_analytics_service,
     )
 
-    db = SessionLocal()
-
     try:
-        playlist = db.get(
-            Playlist,
-            playlist_id,
+        result = (
+            refresh_playlist_analytics_service(
+                playlist_id
+            )
         )
-
-        if playlist is None:
-            raise RuntimeError(
-                "Playlist not found."
-            )
-
-        campaign_ids = [
-            campaign.meta_campaign_id
-            for campaign in (
-                db.query(MetaCampaign)
-                .filter(
-                    MetaCampaign.playlist_id
-                    == playlist_id
-                )
-                .all()
-            )
-            if campaign.meta_campaign_id
-        ]
-
-    finally:
-        db.close()
-
-    try:
-        refreshed = 0
-
-        for campaign_id in campaign_ids:
-            import_meta_campaign(
-                campaign_id=campaign_id,
-                release_id=None,
-            )
-
-            # The existing importer predates playlist-owned
-            # campaigns. Re-assert playlist ownership after
-            # refreshing the shared Meta campaign row.
-            db = SessionLocal()
-
-            try:
-                campaign = (
-                    db.query(MetaCampaign)
-                    .filter(
-                        MetaCampaign.meta_campaign_id
-                        == campaign_id
-                    )
-                    .one_or_none()
-                )
-
-                if campaign is not None:
-                    campaign.release_id = None
-                    campaign.playlist_id = playlist_id
-                    db.commit()
-
-            except Exception:
-                db.rollback()
-                raise
-
-            finally:
-                db.close()
-
-            refreshed += 1
 
         params = urlencode(
             {
-                "analytics_status": "success",
+                "analytics_status":
+                    "success",
                 "analytics_message": (
-                    f"Refreshed {refreshed} Meta "
-                    f"campaign(s)."
+                    f"Refreshed "
+                    f"{result['meta_campaigns']} "
+                    f"Meta campaign(s); "
+                    f"{result['country_rows']} "
+                    f"country rows imported."
                 ),
             }
         )
@@ -3168,8 +3112,10 @@ def refresh_playlist_analytics(
     except Exception as exc:
         params = urlencode(
             {
-                "analytics_status": "error",
-                "analytics_message": str(exc),
+                "analytics_status":
+                    "error",
+                "analytics_message":
+                    str(exc),
             }
         )
 
