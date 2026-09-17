@@ -292,14 +292,39 @@ def get_ad_insights_by_country(
             f"Bearer {settings.meta_access_token}",
     }
 
-    response = requests.get(
-        url,
-        params=params,
-        headers=headers,
-        timeout=30,
-    )
+    rows = []
+    next_url = url
+    next_params = params
 
-    return handle_meta_response(response)
+    while next_url:
+        response = requests.get(
+            next_url,
+            params=next_params,
+            headers=headers,
+            timeout=30,
+        )
+
+        page = handle_meta_response(
+            response
+        )
+
+        rows.extend(
+            page.get("data", [])
+        )
+
+        next_url = (
+            page.get("paging", {})
+            .get("next")
+        )
+
+        # Meta's paging.next URL already contains
+        # the cursor and original query parameters.
+        next_params = None
+
+    return {
+        "data": rows,
+    }
+
 
 
 def search_interests(query: str) -> dict:
