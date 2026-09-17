@@ -320,21 +320,6 @@ def import_meta_campaign_country_metrics(
                 "metrics."
             )
 
-        ads = (
-            db.query(MetaAd)
-            .filter(
-                MetaAd.campaign_id
-                == campaign.id
-            )
-            .all()
-        )
-
-        ads_by_meta_id = {
-            str(ad.meta_ad_id): ad
-            for ad in ads
-            if ad.meta_ad_id
-        }
-
         imported = 0
 
         for row in response.get("data", []):
@@ -342,12 +327,48 @@ def import_meta_campaign_country_metrics(
                 row.get("ad_id") or ""
             )
 
-            ad = ads_by_meta_id.get(
-                meta_ad_id
+            if not meta_ad_id:
+                continue
+
+            ad = (
+                db.query(MetaAd)
+                .filter(
+                    MetaAd.meta_ad_id
+                    == meta_ad_id
+                )
+                .one_or_none()
             )
 
+            # The normal Meta import should already
+            # have created this ad. If not, reconcile
+            # it here rather than silently dropping
+            # the country row.
             if ad is None:
-                continue
+                ad = MetaAd(
+                    campaign_id=campaign.id,
+                    meta_ad_id=meta_ad_id,
+                    meta_adset_id=str(
+                        row.get("adset_id") or ""
+                    ) or None,
+                    name=(
+                        row.get("ad_name")
+                        or f"Meta ad {meta_ad_id}"
+                    ),
+                )
+
+                db.add(ad)
+                db.flush()
+
+            else:
+                ad.campaign_id = campaign.id
+
+                if row.get("adset_id"):
+                    ad.meta_adset_id = str(
+                        row["adset_id"]
+                    )
+
+                if row.get("ad_name"):
+                    ad.name = row["ad_name"]
 
             country = (
                 row.get("country")
@@ -386,6 +407,7 @@ def import_meta_campaign_country_metrics(
                     date_stop=date_stop,
                     country=country,
                 )
+
                 db.add(metric)
 
             metric.spend = float(
