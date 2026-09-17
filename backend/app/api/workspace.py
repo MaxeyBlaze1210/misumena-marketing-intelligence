@@ -1286,6 +1286,9 @@ def release_analytics(
     from app.models.meta_ad_metric import (
         MetaAdMetric,
     )
+    from app.models.meta_ad_country_metric import (
+        MetaAdCountryMetric,
+    )
     from app.models.meta_campaign import (
         MetaCampaign,
     )
@@ -1413,6 +1416,133 @@ def release_analytics(
                 <= selected_date
             )
         ]
+
+        # --------------------------------------------------
+        # Country performance through selected checkpoint
+        # --------------------------------------------------
+
+        country_metric_rows = (
+            db.query(
+                MetaAdCountryMetric
+            )
+            .join(
+                MetaAd,
+                MetaAdCountryMetric.ad_id
+                == MetaAd.id,
+            )
+            .join(
+                MetaCampaign,
+                MetaAd.campaign_id
+                == MetaCampaign.id,
+            )
+            .filter(
+                MetaCampaign.release_id
+                == release_id
+            )
+            .order_by(
+                MetaAdCountryMetric.date_start,
+                MetaAdCountryMetric.country,
+            )
+            .all()
+        )
+
+        country_totals = {}
+
+        for metric in country_metric_rows:
+            if (
+                selected_date is None
+                or metric.date_start
+                > selected_date
+            ):
+                continue
+
+            country = (
+                metric.country
+                or "UNKNOWN"
+            )
+
+            item = country_totals.setdefault(
+                country,
+                {
+                    "country": country,
+                    "spend": 0.0,
+                    "impressions": 0,
+                    "clicks": 0,
+                    "link_clicks": 0,
+                },
+            )
+
+            item["spend"] += float(
+                metric.spend or 0
+            )
+
+            item["impressions"] += int(
+                metric.impressions or 0
+            )
+
+            item["clicks"] += int(
+                metric.clicks or 0
+            )
+
+            item["link_clicks"] += int(
+                metric.link_clicks or 0
+            )
+
+        total_link_clicks = sum(
+            item["link_clicks"]
+            for item
+            in country_totals.values()
+        )
+
+        country_rows = []
+
+        for item in country_totals.values():
+            impressions = item[
+                "impressions"
+            ]
+
+            link_clicks = item[
+                "link_clicks"
+            ]
+
+            item["cost_per_link_click"] = (
+                item["spend"]
+                / link_clicks
+                if link_clicks
+                else None
+            )
+
+            item["link_ctr"] = (
+                (
+                    link_clicks
+                    / impressions
+                )
+                * 100
+                if impressions
+                else 0.0
+            )
+
+            item["link_click_share"] = (
+                (
+                    link_clicks
+                    / total_link_clicks
+                )
+                * 100
+                if total_link_clicks
+                else 0.0
+            )
+
+            country_rows.append(
+                item
+            )
+
+        country_rows.sort(
+            key=lambda item: (
+                -item["link_clicks"],
+                -item["spend"],
+                item["country"],
+            )
+        )
 
         # --------------------------------------------------
         # Helpers
@@ -2157,6 +2287,12 @@ def release_analytics(
                     datetime.now(
                         ZoneInfo("Europe/Berlin")
                     ).date().isoformat(),
+
+                "country_rows":
+                    country_rows,
+
+                "country_link_clicks_total":
+                    total_link_clicks,
 
                 "meta_summary":
                     meta_summary,

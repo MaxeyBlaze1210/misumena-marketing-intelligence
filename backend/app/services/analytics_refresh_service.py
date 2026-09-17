@@ -55,11 +55,18 @@ def refresh_release_analytics(
         db.close()
 
     meta_refreshed = 0
+    country_rows_imported = 0
 
     for campaign_id in meta_campaign_ids:
         import_meta_campaign(
             campaign_id=campaign_id,
             release_id=release_id,
+        )
+
+        country_rows_imported += (
+            import_meta_campaign_country_metrics(
+                campaign_id=campaign_id,
+            )
         )
 
         meta_refreshed += 1
@@ -117,6 +124,8 @@ def refresh_release_analytics(
         "release_id": release_id,
         "meta_campaigns":
             meta_refreshed,
+        "country_rows":
+            country_rows_imported,
         "youtube":
             youtube_result,
         "youtube_discovery":
