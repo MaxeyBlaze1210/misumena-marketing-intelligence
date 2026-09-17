@@ -257,6 +257,51 @@ def get_ad_insights(campaign_id: str):
     return handle_meta_response(response)
 
 
+
+def get_ad_insights_by_country(
+    campaign_id: str,
+) -> dict:
+    url = (
+        f"https://graph.facebook.com/"
+        f"{settings.meta_api_version}/"
+        f"{campaign_id}/insights"
+    )
+
+    params = {
+        "fields": (
+            "ad_id,"
+            "ad_name,"
+            "adset_id,"
+            "adset_name,"
+            "campaign_id,"
+            "campaign_name,"
+            "spend,"
+            "impressions,"
+            "clicks,"
+            "inline_link_clicks"
+        ),
+        "date_preset": "maximum",
+        "time_increment": 1,
+        "level": "ad",
+        "breakdowns": "country",
+        "limit": 500,
+    }
+
+    headers = {
+        "Authorization":
+            f"Bearer {settings.meta_access_token}",
+    }
+
+    response = requests.get(
+        url,
+        params=params,
+        headers=headers,
+        timeout=30,
+    )
+
+    return handle_meta_response(response)
+
+
 def search_interests(query: str) -> dict:
     url = (
         f"https://graph.facebook.com/"

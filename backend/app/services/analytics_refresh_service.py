@@ -1,3 +1,4 @@
+from app.importers.meta_importer import import_meta_campaign_country_metrics
 from datetime import date
 
 import app.database.init_db  # noqa: F401
@@ -162,6 +163,10 @@ def refresh_playlist_analytics(
         import_meta_campaign(
             campaign_id=campaign_id,
             playlist_id=playlist_id,
+        )
+
+        import_meta_campaign_country_metrics(
+            campaign_id=campaign_id,
         )
 
         meta_refreshed += 1

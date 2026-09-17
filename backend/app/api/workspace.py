@@ -28,6 +28,7 @@ from app.models.meta_ad import MetaAd
 from app.models.meta_adset import MetaAdSet
 from app.models.meta_campaign import MetaCampaign
 from app.models.meta_ad_metric import MetaAdMetric
+from app.models.meta_ad_country_metric import MetaAdCountryMetric
 from app.models.spotify_popularity_snapshot import (
     SpotifyPopularitySnapshot,
 )
@@ -3572,6 +3573,103 @@ def playlist_analytics(
         else None
     )
 
+    country_metric_rows = (
+        db.query(MetaAdCountryMetric)
+        .join(
+            MetaAd,
+            MetaAdCountryMetric.ad_id
+            == MetaAd.id,
+        )
+        .join(
+            MetaCampaign,
+            MetaAd.campaign_id
+            == MetaCampaign.id,
+        )
+        .filter(
+            MetaCampaign.playlist_id
+            == playlist.id
+        )
+        .all()
+    )
+
+    country_totals = {}
+
+    for metric in country_metric_rows:
+        country = (
+            metric.country
+            or "UNKNOWN"
+        )
+
+        totals = country_totals.setdefault(
+            country,
+            {
+                "country": country,
+                "spend": 0.0,
+                "impressions": 0,
+                "clicks": 0,
+                "link_clicks": 0,
+            },
+        )
+
+        totals["spend"] += float(
+            metric.spend or 0
+        )
+
+        totals["impressions"] += int(
+            metric.impressions or 0
+        )
+
+        totals["clicks"] += int(
+            metric.clicks or 0
+        )
+
+        totals["link_clicks"] += int(
+            metric.link_clicks or 0
+        )
+
+    country_rows = list(
+        country_totals.values()
+    )
+
+    total_link_clicks = sum(
+        row["link_clicks"]
+        for row in country_rows
+    )
+
+    for row in country_rows:
+        row["cost_per_link_click"] = (
+            row["spend"]
+            / row["link_clicks"]
+            if row["link_clicks"]
+            else None
+        )
+
+        row["link_ctr"] = (
+            row["link_clicks"]
+            / row["impressions"]
+            * 100
+            if row["impressions"]
+            else None
+        )
+
+        row["link_click_share"] = (
+            row["link_clicks"]
+            / total_link_clicks
+            * 100
+            if total_link_clicks
+            else None
+        )
+
+    country_rows.sort(
+        key=lambda row: (
+            row["link_clicks"],
+            row["clicks"],
+            row["spend"],
+        ),
+        reverse=True,
+    )
+
+
     return templates.TemplateResponse(
         request=request,
         name="workspace/playlist_analytics.html",
@@ -3580,6 +3678,8 @@ def playlist_analytics(
             "campaign_plan": campaign_plan,
             "analytics_rows": analytics_rows,
             "meta_summary": meta_summary,
+            "country_rows": country_rows,
+            "country_link_clicks_total": total_link_clicks,
             "analytics_status":
                 request.query_params.get(
                     "analytics_status"

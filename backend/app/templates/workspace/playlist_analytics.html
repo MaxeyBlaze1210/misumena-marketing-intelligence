@@ -171,7 +171,7 @@
                     {{ meta_summary.clicks }}
                 </strong>
                 <br>
-                <small>Link clicks</small>
+                <small>All clicks</small>
             </article>
 
             <article class="release-card">
@@ -209,7 +209,150 @@
         </div>
 
 
-        <h4 style="margin-top:32px;">
+
+            <h4>
+                Performance by country
+            </h4>
+
+            <p>
+                Meta delivery geography.
+                “All clicks” is Meta's broad
+                click metric; “Link clicks”
+                is Meta's inline link-click
+                metric.
+            </p>
+
+            {% if country_rows %}
+                <div style="overflow-x:auto;">
+                    <table style="
+                        width:100%;
+                        border-collapse:collapse;
+                    ">
+                        <thead>
+                            <tr>
+                                <th style="
+                                    text-align:left;
+                                    padding:10px;
+                                ">
+                                    Country
+                                </th>
+                                <th style="
+                                    text-align:left;
+                                    padding:10px;
+                                ">
+                                    Spend
+                                </th>
+                                <th style="
+                                    text-align:left;
+                                    padding:10px;
+                                ">
+                                    Impressions
+                                </th>
+                                <th style="
+                                    text-align:left;
+                                    padding:10px;
+                                ">
+                                    All clicks
+                                </th>
+                                <th style="
+                                    text-align:left;
+                                    padding:10px;
+                                ">
+                                    Link clicks
+                                </th>
+                                <th style="
+                                    text-align:left;
+                                    padding:10px;
+                                ">
+                                    Cost / link click
+                                </th>
+                                <th style="
+                                    text-align:left;
+                                    padding:10px;
+                                ">
+                                    Link CTR
+                                </th>
+                                <th style="
+                                    text-align:left;
+                                    padding:10px;
+                                ">
+                                    Share of link clicks
+                                </th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for row in country_rows %}
+                                <tr>
+                                    <td style="padding:10px;">
+                                        <strong>
+                                            {{ row.country|upper }}
+                                        </strong>
+                                    </td>
+
+                                    <td style="padding:10px;">
+                                        €{{ "%.2f"|format(
+                                            row.spend
+                                        ) }}
+                                    </td>
+
+                                    <td style="padding:10px;">
+                                        {{ row.impressions }}
+                                    </td>
+
+                                    <td style="padding:10px;">
+                                        {{ row.clicks }}
+                                    </td>
+
+                                    <td style="padding:10px;">
+                                        {{ row.link_clicks }}
+                                    </td>
+
+                                    <td style="padding:10px;">
+                                        {% if row.cost_per_link_click
+                                              is not none %}
+                                            €{{ "%.3f"|format(
+                                                row.cost_per_link_click
+                                            ) }}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </td>
+
+                                    <td style="padding:10px;">
+                                        {% if row.link_ctr
+                                              is not none %}
+                                            {{ "%.2f"|format(
+                                                row.link_ctr
+                                            ) }}%
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </td>
+
+                                    <td style="padding:10px;">
+                                        {% if row.link_click_share
+                                              is not none %}
+                                            {{ "%.1f"|format(
+                                                row.link_click_share
+                                            ) }}%
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p>
+                    No country breakdown imported yet.
+                    Click Refresh analytics.
+                </p>
+            {% endif %}
+
+<h4 style="margin-top:32px;">
             Creative performance
         </h4>
 

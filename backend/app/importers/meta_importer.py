@@ -4,6 +4,7 @@ from app.database.database import SessionLocal
 from app.models.meta_ad import MetaAd
 from app.models.meta_adset import MetaAdSet
 from app.models.meta_ad_metric import MetaAdMetric
+from app.models.meta_ad_country_metric import MetaAdCountryMetric
 from app.models.meta_campaign import MetaCampaign
 from app.services.meta_service import (
     get_ad_insights,
@@ -12,6 +13,7 @@ from app.services.meta_service import (
     get_campaigns,
 )
 from app.database.init_db import init_db
+from app.services.meta_service import get_ad_insights_by_country
 
 CAMPAIGN_ID = "120248946076850207"
 RELEASE_ID = 1
@@ -287,3 +289,133 @@ if __name__ == "__main__":
     )
 
 
+
+
+
+def import_meta_campaign_country_metrics(
+    campaign_id: str,
+) -> int:
+    init_db()
+
+    response = get_ad_insights_by_country(
+        campaign_id
+    )
+
+    db = SessionLocal()
+
+    try:
+        campaign = (
+            db.query(MetaCampaign)
+            .filter(
+                MetaCampaign.meta_campaign_id
+                == campaign_id
+            )
+            .one_or_none()
+        )
+
+        if campaign is None:
+            raise RuntimeError(
+                f"Meta campaign {campaign_id} "
+                "must be imported before country "
+                "metrics."
+            )
+
+        ads = (
+            db.query(MetaAd)
+            .filter(
+                MetaAd.campaign_id
+                == campaign.id
+            )
+            .all()
+        )
+
+        ads_by_meta_id = {
+            str(ad.meta_ad_id): ad
+            for ad in ads
+            if ad.meta_ad_id
+        }
+
+        imported = 0
+
+        for row in response.get("data", []):
+            meta_ad_id = str(
+                row.get("ad_id") or ""
+            )
+
+            ad = ads_by_meta_id.get(
+                meta_ad_id
+            )
+
+            if ad is None:
+                continue
+
+            country = (
+                row.get("country")
+                or "UNKNOWN"
+            )
+
+            date_start = date.fromisoformat(
+                row["date_start"]
+            )
+
+            date_stop = date.fromisoformat(
+                row["date_stop"]
+            )
+
+            metric = (
+                db.query(
+                    MetaAdCountryMetric
+                )
+                .filter(
+                    MetaAdCountryMetric.ad_id
+                    == ad.id,
+                    MetaAdCountryMetric.date_start
+                    == date_start,
+                    MetaAdCountryMetric.date_stop
+                    == date_stop,
+                    MetaAdCountryMetric.country
+                    == country,
+                )
+                .one_or_none()
+            )
+
+            if metric is None:
+                metric = MetaAdCountryMetric(
+                    ad_id=ad.id,
+                    date_start=date_start,
+                    date_stop=date_stop,
+                    country=country,
+                )
+                db.add(metric)
+
+            metric.spend = float(
+                row.get("spend") or 0
+            )
+
+            metric.impressions = int(
+                row.get("impressions") or 0
+            )
+
+            metric.clicks = int(
+                row.get("clicks") or 0
+            )
+
+            metric.link_clicks = int(
+                row.get(
+                    "inline_link_clicks"
+                )
+                or 0
+            )
+
+            imported += 1
+
+        db.commit()
+
+        return imported
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
