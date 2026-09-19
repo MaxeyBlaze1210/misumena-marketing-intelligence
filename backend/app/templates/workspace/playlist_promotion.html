@@ -62,9 +62,7 @@
         <a href="/workspace/playlists/{{ playlist.id }}/analytics">Analytics</a>
     </nav>
 
-    {% if experiment_message %}
-        
-<section class="workspace-card">
+    <section class="workspace-card">
     <h3>Register an existing Meta campaign</h3>
 
     <p class="muted">
@@ -95,6 +93,10 @@
         </button>
     </form>
 </section>
+
+{% if experiment_message %}
+        
+
 
 <section class="workspace-card">
             <strong>
