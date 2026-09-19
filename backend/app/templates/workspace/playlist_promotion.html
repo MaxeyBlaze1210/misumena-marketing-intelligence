@@ -63,7 +63,40 @@
     </nav>
 
     {% if experiment_message %}
-        <section class="workspace-card">
+        
+<section class="workspace-card">
+    <h3>Register an existing Meta campaign</h3>
+
+    <p class="muted">
+        Associate a campaign from this Meta ad account
+        with this playlist. This does not create or
+        activate ads.
+    </p>
+
+    <form
+        method="post"
+        action="/workspace/playlists/{{ playlist.id }}/meta-campaigns/register"
+    >
+        <label for="existing-meta-campaign-id">
+            Meta campaign ID
+        </label>
+
+        <input
+            id="existing-meta-campaign-id"
+            type="text"
+            name="campaign_id"
+            pattern="[0-9]+"
+            required
+            placeholder="Meta campaign ID"
+        >
+
+        <button type="submit">
+            Register campaign
+        </button>
+    </form>
+</section>
+
+<section class="workspace-card">
             <strong>
                 {{ experiment_status | upper }}
             </strong>

@@ -5909,3 +5909,130 @@ def save_release_landing_settings(
 
     finally:
         db.close()
+
+
+# Register a Meta campaign created outside MMI's campaign builder.
+# This only associates an existing campaign with a playlist.
+# It does not create, edit, or activate anything in Meta.
+from fastapi import Form as PlaylistCampaignForm
+from fastapi.responses import RedirectResponse as PlaylistCampaignRedirect
+
+
+@router.post(
+    "/playlists/{playlist_id}/meta-campaigns/register"
+)
+def register_existing_playlist_meta_campaign(
+    playlist_id: int,
+    campaign_id: str = PlaylistCampaignForm(...),
+):
+    import re
+    import requests
+
+    from app.core.config import settings
+    from app.database.database import SessionLocal
+    from app.models.playlist import Playlist
+    from app.models.meta_campaign import MetaCampaign
+
+    campaign_id = campaign_id.strip()
+
+    if not re.fullmatch(r"[0-9]{8,24}", campaign_id):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid Meta campaign ID.",
+        )
+
+    response = requests.get(
+        (
+            f"https://graph.facebook.com/"
+            f"{settings.meta_api_version}/"
+            f"{campaign_id}"
+        ),
+        params={
+            "fields": "id,name,status,objective,account_id"
+        },
+        headers={
+            "Authorization":
+                f"Bearer {settings.meta_access_token}"
+        },
+        timeout=30,
+    )
+
+    if not response.ok:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Could not verify this campaign with Meta."
+            ),
+        )
+
+    remote = response.json()
+
+    expected_account = str(
+        settings.meta_ad_account_id
+    ).removeprefix("act_")
+
+    if str(remote.get("account_id")) != expected_account:
+        raise HTTPException(
+            status_code=400,
+            detail="Campaign belongs to another ad account.",
+        )
+
+    db = SessionLocal()
+
+    try:
+        playlist = db.get(Playlist, playlist_id)
+
+        if playlist is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Playlist not found.",
+            )
+
+        campaign = (
+            db.query(MetaCampaign)
+            .filter(
+                MetaCampaign.meta_campaign_id
+                == campaign_id
+            )
+            .one_or_none()
+        )
+
+        if campaign is not None and (
+            campaign.release_id is not None
+            or campaign.playlist_id not in (
+                None,
+                playlist_id,
+            )
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "Campaign is already assigned "
+                    "to another release or playlist."
+                ),
+            )
+
+        if campaign is None:
+            campaign = MetaCampaign(
+                meta_campaign_id=campaign_id,
+            )
+            db.add(campaign)
+
+        campaign.playlist_id = playlist_id
+        campaign.release_id = None
+        campaign.name = remote["name"]
+        campaign.status = remote.get("status")
+        campaign.objective = remote.get("objective")
+
+        db.commit()
+
+    finally:
+        db.close()
+
+    return PlaylistCampaignRedirect(
+        url=(
+            f"/workspace/playlists/"
+            f"{playlist_id}/analytics"
+        ),
+        status_code=303,
+    )
