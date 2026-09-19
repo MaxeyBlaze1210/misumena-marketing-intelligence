@@ -11,6 +11,7 @@ from app.api.meta import router as meta_router
 
 from app.api import recommendations
 from app.api import landing_pages
+from app.api import playlist_landing_pages
 from app.api import workspace
 from app.api import promo_tracking
 from app.api import campaign_builder
@@ -73,6 +74,7 @@ app.include_router(spotify_router)
 app.include_router(recommendations.router)
 app.include_router(meta_router)
 app.include_router(landing_pages.router)
+app.include_router(playlist_landing_pages.router)
 
 # Workspace page routes
 app.include_router(workspace.router)

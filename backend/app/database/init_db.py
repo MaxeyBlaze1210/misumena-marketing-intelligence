@@ -6,6 +6,7 @@ from app.models.track import Track
 from app.models.artist import Artist
 from app.models.release_artist import ReleaseArtist
 from app.models.playlist import Playlist
+from app.models.playlist_landing_event import PlaylistLandingEvent
 
 # YouTube
 from app.models.youtube_video import YouTubeVideo

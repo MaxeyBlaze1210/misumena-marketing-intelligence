@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>{{ playlist.name }} — Misumena</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/landing.css"
+    >
+
+    {% if meta_pixel_id %}
+    <script>
+        !function(f,b,e,v,n,t,s)
+        {
+            if(f.fbq)return;
+
+            n=f.fbq=function(){
+                n.callMethod
+                    ? n.callMethod.apply(n,arguments)
+                    : n.queue.push(arguments);
+            };
+
+            if(!f._fbq)f._fbq=n;
+
+            n.push=n;
+            n.loaded=!0;
+            n.version='2.0';
+            n.queue=[];
+
+            t=b.createElement(e);
+            t.async=!0;
+            t.src=v;
+
+            s=b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t,s);
+
+        }(
+            window,
+            document,
+            'script',
+            'https://connect.facebook.net/en_US/fbevents.js'
+        );
+
+        fbq('init', '{{ meta_pixel_id }}');
+        fbq('track', 'PageView');
+    </script>
+    {% endif %}
+</head>
+
+<body>
+
+    {% if playlist.artwork_url %}
+    <div
+        class="artwork-background"
+        style="background-image:url('{{ playlist.artwork_url }}');"
+    ></div>
+    {% endif %}
+
+    <div class="background-shade"></div>
+
+    <main class="page">
+
+        <section class="release-card">
+
+            {% if playlist.artwork_url %}
+            <img
+                class="cover"
+                src="{{ playlist.artwork_url }}"
+                alt="{{ playlist.name }} artwork"
+            >
+            {% endif %}
+
+            <div class="release-info">
+
+                <div class="release-heading">
+                    <h1>{{ playlist.name }}</h1>
+                    <p class="artist">Misumena</p>
+                </div>
+
+                <p class="description">
+                    The essential tracks, all in one playlist.
+                </p>
+
+                <div class="services">
+
+                    <a
+                        class="service-link"
+                        href="/p/{{ playlist.id }}/go/spotify"
+                        data-platform="spotify"
+                    >
+
+                        <span class="service-identity">
+
+                            <span class="service-mark spotify-mark">
+                                ●
+                            </span>
+
+                            <span>Spotify</span>
+
+                        </span>
+
+                        <span class="service-action">
+                            Listen
+                            <span class="chevron">›</span>
+                        </span>
+
+                    </a>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</body>
+</html>
