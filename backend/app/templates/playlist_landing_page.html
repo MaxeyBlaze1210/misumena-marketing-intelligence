@@ -56,11 +56,14 @@
 </head>
 
 <body>
+    {% set artwork = '/static/images/this-is-misumena.png'
+        if playlist.id == 1 else playlist.artwork_url %}
 
-    {% if playlist.artwork_url %}
+
+    {% if artwork %}
     <div
         class="artwork-background"
-        style="background-image:url('{{ playlist.artwork_url }}');"
+        style="background-image:url('{{ artwork }}');"
     ></div>
     {% endif %}
 
@@ -70,10 +73,10 @@
 
         <section class="release-card">
 
-            {% if playlist.artwork_url %}
+            {% if artwork %}
             <img
                 class="cover"
-                src="{{ playlist.artwork_url }}"
+                src="{{ artwork }}"
                 alt="{{ playlist.name }} artwork"
             >
             {% endif %}
