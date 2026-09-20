@@ -6093,3 +6093,12 @@ def register_existing_playlist_meta_campaign(
         ),
         status_code=303,
     )
+
+
+@router.get("/tools/spotify-deep-links")
+def spotify_playlist_deep_links(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="workspace/spotify_deep_links.html",
+        context={},
+    )

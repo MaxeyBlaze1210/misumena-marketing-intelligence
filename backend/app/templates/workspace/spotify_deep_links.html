@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Playlist Deep Links · MMI</title>
+    <link rel="stylesheet" href="/static/css/workspace.css">
+</head>
+<body>
+<div class="workspace-shell">
+
+    <a class="back-link" href="/workspace/playlists">
+        ← All playlists
+    </a>
+
+    <header class="workspace-header">
+        <div>
+            <div class="eyebrow">MMI · Promotion tools</div>
+            <h1>Spotify Playlist Deep Links</h1>
+            <p class="muted">
+                Open a specific song in a Spotify playlist.
+                No MMI landing page or redirect.
+            </p>
+        </div>
+    </header>
+
+    <section class="workspace-card">
+        <form id="deep-link-form">
+
+            <label for="track-url">
+                <strong>Spotify song URL</strong>
+            </label>
+            <input
+                id="track-url"
+                type="url"
+                required
+                style="width:100%;margin:8px 0 20px;"
+                placeholder="https://open.spotify.com/track/..."
+            >
+
+            <label for="playlist-url">
+                <strong>Spotify playlist URL</strong>
+            </label>
+            <input
+                id="playlist-url"
+                type="url"
+                required
+                style="width:100%;margin:8px 0 20px;"
+                placeholder="https://open.spotify.com/playlist/..."
+            >
+
+            <button type="submit">
+                Generate deep link
+            </button>
+        </form>
+
+        <p id="error" role="alert" style="color:#c44;"></p>
+    </section>
+
+    <section
+        id="result"
+        class="workspace-card"
+        style="display:none;"
+    >
+        <h2>Your Spotify deep link</h2>
+
+        <p class="muted">
+            Paste this URL directly into your Instagram Story
+            link sticker.
+        </p>
+
+        <input
+            id="generated-url"
+            type="text"
+            readonly
+            aria-label="Generated Spotify deep link"
+            style="width:100%;margin-bottom:16px;"
+        >
+
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <button type="button" id="copy-button">
+                Copy link
+            </button>
+
+            <a
+                id="test-link"
+                href="#"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                Test in Spotify ↗
+            </a>
+        </div>
+
+        <p id="copy-status" aria-live="polite"></p>
+
+        <p class="muted">
+            The track must actually be present in the playlist.
+            MMI constructs the link but does not verify playlist
+            membership or guarantee Spotify playback behavior
+            on every device.
+        </p>
+    </section>
+
+</div>
+
+<script>
+(() => {
+    const form = document.getElementById("deep-link-form");
+    const trackInput = document.getElementById("track-url");
+    const playlistInput = document.getElementById("playlist-url");
+    const result = document.getElementById("result");
+    const output = document.getElementById("generated-url");
+    const testLink = document.getElementById("test-link");
+    const error = document.getElementById("error");
+    const copyButton = document.getElementById("copy-button");
+    const copyStatus = document.getElementById("copy-status");
+
+    function spotifyId(input, expectedType) {
+        let url;
+
+        try {
+            url = new URL(input.trim());
+        } catch {
+            throw new Error("Enter a valid Spotify URL.");
+        }
+
+        if (
+            url.protocol !== "https:" ||
+            url.hostname !== "open.spotify.com"
+        ) {
+            throw new Error(
+                "Use a https://open.spotify.com link."
+            );
+        }
+
+        const match = url.pathname.match(
+            /^\/(track|playlist)\/([A-Za-z0-9]{22})\/?$/
+        );
+
+        if (!match || match[1] !== expectedType) {
+            throw new Error(
+                "Enter a Spotify " + expectedType + " URL."
+            );
+        }
+
+        return match[2];
+    }
+
+    form.addEventListener("submit", (event) => {
+        event.preventDefault();
+
+        error.textContent = "";
+        copyStatus.textContent = "";
+        result.style.display = "none";
+
+        try {
+            const trackId = spotifyId(
+                trackInput.value, "track"
+            );
+            const playlistId = spotifyId(
+                playlistInput.value, "playlist"
+            );
+
+            const link =
+                "https://open.spotify.com/track/" +
+                trackId +
+                "?context=spotify:playlist:" +
+                playlistId;
+
+            output.value = link;
+            testLink.href = link;
+            result.style.display = "";
+        } catch (err) {
+            error.textContent = err.message;
+        }
+    });
+
+    copyButton.addEventListener("click", async () => {
+        try {
+            await navigator.clipboard.writeText(
+                output.value
+            );
+            copyStatus.textContent = "Link copied.";
+        } catch {
+            output.focus();
+            output.select();
+            copyStatus.textContent =
+                "Select and copy the highlighted link.";
+        }
+    });
+})();
+</script>
+</body>
+</html>
