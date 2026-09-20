@@ -3423,6 +3423,46 @@ def playlist_analytics(
             detail="Playlist not found.",
         )
 
+
+    import re
+
+    campaigns = (
+        db.query(MetaCampaign)
+        .filter(MetaCampaign.playlist_id == playlist.id)
+        .order_by(MetaCampaign.id.desc())
+        .all()
+    )
+
+    requested_campaign_id = request.query_params.get(
+        "campaign"
+    )
+
+    selected_campaign = (
+        next(
+            (
+                campaign
+                for campaign in campaigns
+                if campaign.meta_campaign_id
+                == requested_campaign_id
+            ),
+            None,
+        )
+        if requested_campaign_id
+        else (campaigns[0] if campaigns else None)
+    )
+
+    if requested_campaign_id and selected_campaign is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Campaign not registered to this playlist.",
+        )
+
+    selected_campaign_id = (
+        selected_campaign.meta_campaign_id
+        if selected_campaign is not None
+        else "__no_campaign__"
+    )
+
     campaign_plan = (
         db.query(MetaCampaignPlan)
         .filter(
@@ -3479,8 +3519,8 @@ def playlist_analytics(
             == MetaAd.id,
         )
         .filter(
-            MetaCampaign.playlist_id
-            == playlist.id
+            MetaCampaign.playlist_id == playlist.id,
+            MetaCampaign.meta_campaign_id == selected_campaign_id,
         )
         .order_by(
             MetaAdMetric.date_start.asc()
@@ -3509,12 +3549,26 @@ def playlist_analytics(
             str(ad.meta_adset_id)
         )
 
-        if cell is None:
-            continue
-
-        paid = paid_by_asset.get(
+        asset_id = (
             cell.asset_id
+            if cell is not None
+            else None
         )
+
+        if asset_id is None:
+            ad_name = str(getattr(ad, "name", "") or "")
+            match = re.search(
+                r"\bC([12])\b",
+                ad_name,
+                re.IGNORECASE,
+            )
+
+            if match:
+                asset_index = int(match.group(1)) - 1
+                if asset_index < len(creatives):
+                    asset_id = creatives[asset_index].id
+
+        paid = paid_by_asset.get(asset_id)
 
         if paid is None:
             continue
@@ -3627,16 +3681,16 @@ def playlist_analytics(
 
     meta_summary = {
         "spend": sum(
-            row["paid"]["spend"]
-            for row in analytics_rows
+            float(metric.spend or 0)
+            for _, _, metric in metric_rows
         ),
         "impressions": sum(
-            row["paid"]["impressions"]
-            for row in analytics_rows
+            int(metric.impressions or 0)
+            for _, _, metric in metric_rows
         ),
         "clicks": sum(
-            row["paid"]["clicks"]
-            for row in analytics_rows
+            int(metric.clicks or 0)
+            for _, _, metric in metric_rows
         ),
     }
 
@@ -3668,8 +3722,8 @@ def playlist_analytics(
             == MetaCampaign.id,
         )
         .filter(
-            MetaCampaign.playlist_id
-            == playlist.id
+            MetaCampaign.playlist_id == playlist.id,
+            MetaCampaign.meta_campaign_id == selected_campaign_id,
         )
         .all()
     )
@@ -3756,6 +3810,9 @@ def playlist_analytics(
         request=request,
         name="workspace/playlist_analytics.html",
         context={
+                "campaigns": campaigns,
+                "selected_campaign": selected_campaign,
+                "selected_campaign_id": selected_campaign_id,
             "playlist": playlist,
             "campaign_plan": campaign_plan,
             "analytics_rows": analytics_rows,

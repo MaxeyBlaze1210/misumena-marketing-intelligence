@@ -152,8 +152,40 @@
         {% endif %}
 
 
-        <h4>
-            Campaign performance
+
+        <h4>Select Meta campaign</h4>
+
+        {% if campaigns %}
+            <nav style="
+                display:flex;
+                gap:12px;
+                flex-wrap:wrap;
+                margin-bottom:18px;
+            ">
+                {% for campaign in campaigns %}
+                    <a href="/workspace/playlists/{{ playlist.id }}/analytics?campaign={{ campaign.meta_campaign_id }}">
+                        {% if campaign.meta_campaign_id == selected_campaign_id %}
+                            <strong>{{ campaign.name }}</strong>
+                        {% else %}
+                            {{ campaign.name }}
+                        {% endif %}
+                    </a>
+                {% endfor %}
+            </nav>
+
+            <p class="muted">
+                Showing Meta results for
+                <strong>{{ selected_campaign.name }}</strong>
+                ({{ selected_campaign.meta_campaign_id }}) only.
+            </p>
+        {% else %}
+            <p class="muted">
+                No Meta campaigns registered to this playlist.
+            </p>
+        {% endif %}
+
+<h4>
+            Selected campaign performance
         </h4>
 
         <div class="release-grid">
