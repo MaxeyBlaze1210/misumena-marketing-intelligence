@@ -91,7 +91,7 @@
 
                     <a
                         class="service-link"
-                        href="/p/{{ playlist.id }}/go/spotify"
+                        id="spotify-outbound-link" href="/p/{{ playlist.id }}/go/spotify"
                         data-platform="spotify"
                     >
 
@@ -119,6 +119,58 @@
         </section>
 
     </main>
+
+
+<script>
+(() => {
+    const link = document.getElementById("spotify-outbound-link");
+    if (!link) return;
+
+    link.addEventListener("click", (event) => {
+        // Preserve modified clicks / new-tab behaviour.
+        if (
+            event.button !== 0 ||
+            event.metaKey ||
+            event.ctrlKey ||
+            event.shiftKey ||
+            event.altKey
+        ) {
+            return;
+        }
+
+        event.preventDefault();
+
+        const destination = link.href;
+        let redirected = false;
+
+        const goToSpotify = () => {
+            if (redirected) return;
+            redirected = true;
+            window.location.assign(destination);
+        };
+
+        try {
+            if (typeof fbq === "function") {
+                fbq(
+                    "trackCustom",
+                    "SpotifyOutbound",
+                    {
+                        playlist_id: "{{ playlist.spotify_playlist_id }}"
+                    }
+                );
+
+                // Give the browser pixel a brief opportunity to send
+                // before handing the user to Spotify.
+                window.setTimeout(goToSpotify, 350);
+            } else {
+                goToSpotify();
+            }
+        } catch (error) {
+            goToSpotify();
+        }
+    });
+})();
+</script>
 
 </body>
 </html>
