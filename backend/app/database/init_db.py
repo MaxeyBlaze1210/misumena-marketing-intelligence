@@ -24,6 +24,10 @@ from app.models.meta_interest import MetaInterest
 from app.models.meta_campaign import MetaCampaign
 from app.models.meta_ad import MetaAd
 from app.models.meta_ad_metric import MetaAdMetric
+from app.models.meta_ad_action_metric import MetaAdActionMetric
+from app.models.meta_ad_country_action_metric import (
+    MetaAdCountryActionMetric,
+)
 from app.models.meta_creative import MetaCreative
 from app.models.meta_audience import MetaAudience
 from app.models.meta_audience_interest import MetaAudienceInterest

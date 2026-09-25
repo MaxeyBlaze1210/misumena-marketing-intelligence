@@ -28,6 +28,10 @@ from app.models.meta_ad import MetaAd
 from app.models.meta_adset import MetaAdSet
 from app.models.meta_campaign import MetaCampaign
 from app.models.meta_ad_metric import MetaAdMetric
+from app.models.meta_ad_action_metric import MetaAdActionMetric
+from app.models.meta_ad_country_action_metric import (
+    MetaAdCountryActionMetric,
+)
 from app.models.meta_ad_country_metric import MetaAdCountryMetric
 from app.models.spotify_popularity_snapshot import (
     SpotifyPopularitySnapshot,
@@ -3709,6 +3713,59 @@ def playlist_analytics(
         else None
     )
 
+    custom_conversion_action_type = (
+        "offsite_conversion.fb_pixel_custom"
+    )
+
+    custom_conversion_rows = (
+        db.query(MetaAdActionMetric)
+        .join(
+            MetaAd,
+            MetaAdActionMetric.ad_id == MetaAd.id,
+        )
+        .join(
+            MetaCampaign,
+            MetaAd.campaign_id == MetaCampaign.id,
+        )
+        .filter(
+            MetaCampaign.playlist_id == playlist.id,
+            MetaCampaign.meta_campaign_id
+            == selected_campaign_id,
+            MetaAdActionMetric.action_type
+            == custom_conversion_action_type,
+        )
+        .all()
+    )
+
+    meta_summary["custom_conversions"] = int(
+        round(
+            sum(
+                float(row.value or 0)
+                for row in custom_conversion_rows
+            )
+        )
+    )
+
+    selected_campaign_name = (
+        str(selected_campaign.name or "")
+        if selected_campaign is not None
+        else ""
+    )
+
+    meta_summary["conversion_label"] = (
+        "SpotifyOutbound"
+        if "spotifyoutbound"
+        in selected_campaign_name.lower()
+        else "Meta custom conversion"
+    )
+
+    meta_summary["cost_per_custom_conversion"] = (
+        meta_summary["spend"]
+        / meta_summary["custom_conversions"]
+        if meta_summary["custom_conversions"]
+        else None
+    )
+
     country_metric_rows = (
         db.query(MetaAdCountryMetric)
         .join(
@@ -3744,6 +3801,7 @@ def playlist_analytics(
                 "impressions": 0,
                 "clicks": 0,
                 "link_clicks": 0,
+                "custom_conversions": 0,
             },
         )
 
@@ -3763,6 +3821,50 @@ def playlist_analytics(
             metric.link_clicks or 0
         )
 
+    country_conversion_rows = (
+        db.query(MetaAdCountryActionMetric)
+        .join(
+            MetaAd,
+            MetaAdCountryActionMetric.ad_id
+            == MetaAd.id,
+        )
+        .join(
+            MetaCampaign,
+            MetaAd.campaign_id
+            == MetaCampaign.id,
+        )
+        .filter(
+            MetaCampaign.playlist_id == playlist.id,
+            MetaCampaign.meta_campaign_id
+            == selected_campaign_id,
+            MetaAdCountryActionMetric.action_type
+            == custom_conversion_action_type,
+        )
+        .all()
+    )
+
+    for metric in country_conversion_rows:
+        country = (
+            metric.country
+            or "UNKNOWN"
+        )
+
+        totals = country_totals.setdefault(
+            country,
+            {
+                "country": country,
+                "spend": 0.0,
+                "impressions": 0,
+                "clicks": 0,
+                "link_clicks": 0,
+                "custom_conversions": 0,
+            },
+        )
+
+        totals["custom_conversions"] += int(
+            round(float(metric.value or 0))
+        )
+
     country_rows = list(
         country_totals.values()
     )
@@ -3770,6 +3872,16 @@ def playlist_analytics(
     total_link_clicks = sum(
         row["link_clicks"]
         for row in country_rows
+    )
+
+    meta_summary["link_clicks"] = total_link_clicks
+
+    meta_summary["custom_conversion_rate"] = (
+        meta_summary["custom_conversions"]
+        / total_link_clicks
+        * 100
+        if total_link_clicks
+        else None
     )
 
     for row in country_rows:
@@ -3796,8 +3908,24 @@ def playlist_analytics(
             else None
         )
 
+        row["custom_conversion_rate"] = (
+            row["custom_conversions"]
+            / row["link_clicks"]
+            * 100
+            if row["link_clicks"]
+            else None
+        )
+
+        row["cost_per_custom_conversion"] = (
+            row["spend"]
+            / row["custom_conversions"]
+            if row["custom_conversions"]
+            else None
+        )
+
     country_rows.sort(
         key=lambda row: (
+            row["custom_conversions"],
             row["link_clicks"],
             row["clicks"],
             row["spend"],

@@ -4,7 +4,11 @@ from app.database.database import SessionLocal
 from app.models.meta_ad import MetaAd
 from app.models.meta_adset import MetaAdSet
 from app.models.meta_ad_metric import MetaAdMetric
+from app.models.meta_ad_action_metric import MetaAdActionMetric
 from app.models.meta_ad_country_metric import MetaAdCountryMetric
+from app.models.meta_ad_country_action_metric import (
+    MetaAdCountryActionMetric,
+)
 from app.models.meta_campaign import MetaCampaign
 from app.services.meta_service import (
     get_ad_insights,
@@ -182,6 +186,61 @@ def import_meta_campaign(
                 "cost_per_action_type",
                 [],
             )
+
+            # Keep all Meta action metrics generically so future
+            # campaigns can use arbitrary conversion events.
+            db.query(MetaAdActionMetric).filter(
+                MetaAdActionMetric.ad_id == ad.id,
+                MetaAdActionMetric.date_start == date_start,
+                MetaAdActionMetric.date_stop == date_stop,
+            ).delete(
+                synchronize_session=False
+            )
+
+            cost_by_action = {
+                str(item.get("action_type")): item.get("value")
+                for item in costs
+                if item.get("action_type")
+            }
+
+            for action in actions:
+                action_type = str(
+                    action.get("action_type") or ""
+                )
+
+                if not action_type:
+                    continue
+
+                try:
+                    action_value = float(
+                        action.get("value") or 0
+                    )
+                except (TypeError, ValueError):
+                    continue
+
+                raw_cost = cost_by_action.get(
+                    action_type
+                )
+
+                try:
+                    action_cost = (
+                        float(raw_cost)
+                        if raw_cost is not None
+                        else None
+                    )
+                except (TypeError, ValueError):
+                    action_cost = None
+
+                db.add(
+                    MetaAdActionMetric(
+                        ad_id=ad.id,
+                        date_start=date_start,
+                        date_stop=date_stop,
+                        action_type=action_type,
+                        value=action_value,
+                        cost_per_action=action_cost,
+                    )
+                )
 
             metric.spend = float(
                 metric_data.get("spend", 0)
@@ -428,6 +487,77 @@ def import_meta_campaign_country_metrics(
                 )
                 or 0
             )
+
+            actions = row.get(
+                "actions",
+                [],
+            )
+
+            costs = row.get(
+                "cost_per_action_type",
+                [],
+            )
+
+            db.query(
+                MetaAdCountryActionMetric
+            ).filter(
+                MetaAdCountryActionMetric.ad_id
+                == ad.id,
+                MetaAdCountryActionMetric.date_start
+                == date_start,
+                MetaAdCountryActionMetric.date_stop
+                == date_stop,
+                MetaAdCountryActionMetric.country
+                == country,
+            ).delete(
+                synchronize_session=False
+            )
+
+            cost_by_action = {
+                str(item.get("action_type")): item.get("value")
+                for item in costs
+                if item.get("action_type")
+            }
+
+            for action in actions:
+                action_type = str(
+                    action.get("action_type") or ""
+                )
+
+                if not action_type:
+                    continue
+
+                try:
+                    action_value = float(
+                        action.get("value") or 0
+                    )
+                except (TypeError, ValueError):
+                    continue
+
+                raw_cost = cost_by_action.get(
+                    action_type
+                )
+
+                try:
+                    action_cost = (
+                        float(raw_cost)
+                        if raw_cost is not None
+                        else None
+                    )
+                except (TypeError, ValueError):
+                    action_cost = None
+
+                db.add(
+                    MetaAdCountryActionMetric(
+                        ad_id=ad.id,
+                        date_start=date_start,
+                        date_stop=date_stop,
+                        country=country,
+                        action_type=action_type,
+                        value=action_value,
+                        cost_per_action=action_cost,
+                    )
+                )
 
             imported += 1
 

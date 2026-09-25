@@ -278,7 +278,9 @@ def get_ad_insights_by_country(
             "spend,"
             "impressions,"
             "clicks,"
-            "inline_link_clicks"
+            "inline_link_clicks,"
+            "actions,"
+            "cost_per_action_type"
         ),
         "date_preset": "maximum",
         "time_increment": 1,

@@ -188,6 +188,13 @@
             Selected campaign performance
         </h4>
 
+        <p class="muted">
+            For conversion campaigns, the primary funnel is
+            Meta link click → attributed custom conversion.
+            SpotifyOutbound is an outbound button event, not a
+            verified Spotify stream or save.
+        </p>
+
         <div class="release-grid">
 
             <article class="release-card">
@@ -196,6 +203,58 @@
                 </strong>
                 <br>
                 <small>Spend</small>
+            </article>
+
+            <article class="release-card">
+                <strong>
+                    {{ meta_summary.link_clicks }}
+                </strong>
+                <br>
+                <small>Link clicks</small>
+            </article>
+
+            <article class="release-card">
+                <strong>
+                    {{ meta_summary.custom_conversions }}
+                </strong>
+                <br>
+                <small>{{ meta_summary.conversion_label }}</small>
+            </article>
+
+            <article class="release-card">
+                <strong>
+                    {% if meta_summary.custom_conversion_rate is not none %}
+                        {{ "%.1f"|format(
+                            meta_summary.custom_conversion_rate
+                        ) }}%
+                    {% else %}
+                        —
+                    {% endif %}
+                </strong>
+                <br>
+                <small>Click → {{ meta_summary.conversion_label }}</small>
+            </article>
+
+            <article class="release-card">
+                <strong>
+                    {% if meta_summary.cost_per_custom_conversion is not none %}
+                        €{{ "%.2f"|format(
+                            meta_summary.cost_per_custom_conversion
+                        ) }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </strong>
+                <br>
+                <small>Cost / {{ meta_summary.conversion_label }}</small>
+            </article>
+
+            <article class="release-card">
+                <strong>
+                    {{ meta_summary.impressions }}
+                </strong>
+                <br>
+                <small>Impressions</small>
             </article>
 
             <article class="release-card">
@@ -220,14 +279,6 @@
 
             <article class="release-card">
                 <strong>
-                    {{ meta_summary.impressions }}
-                </strong>
-                <br>
-                <small>Impressions</small>
-            </article>
-
-            <article class="release-card">
-                <strong>
                     {% if meta_summary.ctr is not none %}
                         {{ "%.2f"|format(meta_summary.ctr) }}%
                     {% else %}
@@ -241,148 +292,122 @@
         </div>
 
 
+<h4 style="margin-top:32px;">
+            Performance by country
+        </h4>
 
-            <h4>
-                Performance by country
-            </h4>
+        <p>
+            Meta delivery geography and conversion funnel.
+            “Link clicks” is Meta's inline link-click metric.
+            The conversion column is Meta's attributed custom
+            pixel conversion for the selected campaign.
+        </p>
 
-            <p>
-                Meta delivery geography.
-                “All clicks” is Meta's broad
-                click metric; “Link clicks”
-                is Meta's inline link-click
-                metric.
-            </p>
+        {% if country_rows %}
+            <div style="overflow-x:auto;">
+                <table style="
+                    width:100%;
+                    border-collapse:collapse;
+                    min-width:980px;
+                ">
+                    <thead>
+                        <tr>
+                            <th style="text-align:left; padding:10px;">
+                                Country
+                            </th>
+                            <th style="text-align:left; padding:10px;">
+                                Spend
+                            </th>
+                            <th style="text-align:left; padding:10px;">
+                                Impressions
+                            </th>
+                            <th style="text-align:left; padding:10px;">
+                                All clicks
+                            </th>
+                            <th style="text-align:left; padding:10px;">
+                                Link clicks
+                            </th>
+                            <th style="text-align:left; padding:10px;">
+                                {{ meta_summary.conversion_label }}
+                            </th>
+                            <th style="text-align:left; padding:10px;">
+                                Click → conversion
+                            </th>
+                            <th style="text-align:left; padding:10px;">
+                                Cost / conversion
+                            </th>
+                            <th style="text-align:left; padding:10px;">
+                                Link CTR
+                            </th>
+                        </tr>
+                    </thead>
 
-            {% if country_rows %}
-                <div style="overflow-x:auto;">
-                    <table style="
-                        width:100%;
-                        border-collapse:collapse;
-                    ">
-                        <thead>
+                    <tbody>
+                        {% for row in country_rows %}
                             <tr>
-                                <th style="
-                                    text-align:left;
-                                    padding:10px;
-                                ">
-                                    Country
-                                </th>
-                                <th style="
-                                    text-align:left;
-                                    padding:10px;
-                                ">
-                                    Spend
-                                </th>
-                                <th style="
-                                    text-align:left;
-                                    padding:10px;
-                                ">
-                                    Impressions
-                                </th>
-                                <th style="
-                                    text-align:left;
-                                    padding:10px;
-                                ">
-                                    All clicks
-                                </th>
-                                <th style="
-                                    text-align:left;
-                                    padding:10px;
-                                ">
-                                    Link clicks
-                                </th>
-                                <th style="
-                                    text-align:left;
-                                    padding:10px;
-                                ">
-                                    Cost / link click
-                                </th>
-                                <th style="
-                                    text-align:left;
-                                    padding:10px;
-                                ">
-                                    Link CTR
-                                </th>
-                                <th style="
-                                    text-align:left;
-                                    padding:10px;
-                                ">
-                                    Share of link clicks
-                                </th>
-                            </tr>
-                        </thead>
+                                <td style="padding:10px;">
+                                    <strong>{{ row.country }}</strong>
+                                </td>
 
-                        <tbody>
-                            {% for row in country_rows %}
-                                <tr>
-                                    <td style="padding:10px;">
-                                        <strong>
-                                            {{ row.country|upper }}
-                                        </strong>
-                                    </td>
+                                <td style="padding:10px;">
+                                    €{{ "%.2f"|format(row.spend) }}
+                                </td>
 
-                                    <td style="padding:10px;">
+                                <td style="padding:10px;">
+                                    {{ row.impressions }}
+                                </td>
+
+                                <td style="padding:10px;">
+                                    {{ row.clicks }}
+                                </td>
+
+                                <td style="padding:10px;">
+                                    {{ row.link_clicks }}
+                                </td>
+
+                                <td style="padding:10px;">
+                                    {{ row.custom_conversions }}
+                                </td>
+
+                                <td style="padding:10px;">
+                                    {% if row.custom_conversion_rate is not none %}
+                                        {{ "%.1f"|format(
+                                            row.custom_conversion_rate
+                                        ) }}%
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+
+                                <td style="padding:10px;">
+                                    {% if row.cost_per_custom_conversion is not none %}
                                         €{{ "%.2f"|format(
-                                            row.spend
+                                            row.cost_per_custom_conversion
                                         ) }}
-                                    </td>
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
 
-                                    <td style="padding:10px;">
-                                        {{ row.impressions }}
-                                    </td>
+                                <td style="padding:10px;">
+                                    {% if row.link_ctr is not none %}
+                                        {{ "%.2f"|format(row.link_ctr) }}%
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p>
+                No country breakdown imported yet.
+                Click Refresh analytics.
+            </p>
+        {% endif %}
 
-                                    <td style="padding:10px;">
-                                        {{ row.clicks }}
-                                    </td>
-
-                                    <td style="padding:10px;">
-                                        {{ row.link_clicks }}
-                                    </td>
-
-                                    <td style="padding:10px;">
-                                        {% if row.cost_per_link_click
-                                              is not none %}
-                                            €{{ "%.3f"|format(
-                                                row.cost_per_link_click
-                                            ) }}
-                                        {% else %}
-                                            —
-                                        {% endif %}
-                                    </td>
-
-                                    <td style="padding:10px;">
-                                        {% if row.link_ctr
-                                              is not none %}
-                                            {{ "%.2f"|format(
-                                                row.link_ctr
-                                            ) }}%
-                                        {% else %}
-                                            —
-                                        {% endif %}
-                                    </td>
-
-                                    <td style="padding:10px;">
-                                        {% if row.link_click_share
-                                              is not none %}
-                                            {{ "%.1f"|format(
-                                                row.link_click_share
-                                            ) }}%
-                                        {% else %}
-                                            —
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            {% else %}
-                <p>
-                    No country breakdown imported yet.
-                    Click Refresh analytics.
-                </p>
-            {% endif %}
 
 <h4 style="margin-top:32px;">
             Creative performance
